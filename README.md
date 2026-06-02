@@ -71,6 +71,9 @@ This may not be always possible (Mario on Terebikko has no long streaks of music
 
 # TODO 
 
+- A native Windows / Linux build that leverages Qt, with gallery mode etc...
+This is going to happen very soon, stay tuned.
+
 - Play through more games
 Unfortunately many do not have proper VHS dumps. Some use the tones very curiously as well.
 
@@ -79,5 +82,3 @@ Mostly for the other 2 See 'N Say games, and the (undumped) Japanese games.
 
 - Add a multiplayer mode
 
-- A native Windows / Linux build that leverages Qt, with gallery mode etc...
-This is in the works but there are currently video/audio slowdown issues that i am encountering.
