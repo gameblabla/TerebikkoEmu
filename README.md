@@ -1,6 +1,6 @@
 # TerebikkoEmu by gameblabla
 
-![User interface to TerebikkoEmu, playing Sailor S](https://raw.githubusercontent.com/gameblabla/TerebikkoEmu/refs/heads/main/screenshot.png | width=640)
+![User interface to TerebikkoEmu, playing Sailor S](https://raw.githubusercontent.com/gameblabla/TerebikkoEmu/refs/heads/main/screenshot.png)
 
 
 TerebikkoEmu is a player/emulator for the Bandai Terebikko and its american counterpart, the Mattel See 'N Say Videophone.
