@@ -1,0 +1,44 @@
+# name Mario to Yoshi no Bouken Land
+#	Type	Start	End	Answer	Checkpoint	Cue	Bytes
+1	intro	00:00.3	00:00.5				A2 42
+2	intro	00:02.3	00:02.5				A2 04 15 DF FE
+3	intro	00:04.3	00:04.5				A2 04 15 DF FE
+4	intro	00:06.3	00:06.5				A2 00 55 DF FE
+5	intro	00:08.3	00:08.6				A2 80 15 DF FE
+6	intro	00:10.3	00:10.5				A2 02 15 DF FE
+7	intro	00:12.3	00:12.5				A2 00 95 DF FE
+8	intro	00:14.3	00:14.6				A2 08 15 DF FE
+9	pickup	01:49.1	01:54.2		01:48.5		A8 02 15 7F FE
+10	sound	01:54.2	01:54.4				AC B2 15 36 FE
+11	sound	02:06.2	02:06.5				AC 60 15 39 FF
+12	pickup	03:43.7	03:48.8		03:43.1		A8 40 15 FF FE
+13	sound	03:48.8	03:49.1				AE 60 0D 39 FF
+14	sound	03:55.6	03:55.8				AC 42 15 3B FE
+15	answer	04:00.5	04:10.1	1	03:55.2		0D 00 9F 2F FE
+16	pickup	05:56.5	06:01.9		05:55.9		A8 08 15 7F FE
+17	sound	06:01.9	06:02.1				AD 80 17 37 FF
+18	sound	06:10.8	06:11.0				AC B0 05 35 FF
+19	answer	06:22.1	06:31.7	2	06:10.4		0D 45 5F 2B AB
+20	pickup	09:02.1	09:07.2		09:01.5		A8 00 15 7F FE
+21	sound	09:07.2	09:07.5				AC E4 17 31 FE
+22	sound	09:22.4	09:22.6				AC 90 25 36 FF
+23	answer	09:32.3	09:42.3	1	09:22.0		0D 35 1F 2C EE
+24	pickup	10:13.5	10:18.9		10:12.9		A8 00 95 7F FE
+25	sound	10:18.9	10:19.1				AC D0 15 32 FE
+26	answer	10:32.9	10:42.5	1	10:18.5		1D 34 5E 2C BE
+27	pickup	11:39.7	11:45.1		11:39.1		A8 00 15 7F FE
+28	sound	11:45.1	11:45.3				AC E1 15 31 FE
+29	sound	12:00.0	12:00.3				AC D0 1D 32 FE
+30	answer	12:14.2	12:23.8	2	11:59.6		0D 65 5F 29 AB
+31	pickup	14:18.2	14:23.5		14:17.6		A8 01 15 7F FE
+32	sound	14:23.5	14:23.7				AC E0 15 31 FE
+33	sound	14:38.5	14:38.8				AC A1 05 35 FF
+34	answer	14:49.6	14:59.2	2	14:38.1		0D 55 6F 2A AB
+35	sound	16:18.9	16:19.1				AC 00 15 7F FE
+36	sound	16:24.3	16:24.5				AC C1 05 3B FF
+37	sound	16:37.2	16:37.5				AC B0 95 35 FE
+38	answer	16:49.4	16:59.0	3	16:36.8		0D 45 8F 2B B7
+39	pickup	17:36.2	17:41.4		17:35.6		A8 00 35 7F FE
+40	sound	17:41.4	17:41.6				AD D0 1D 32 FF
+41	sound	17:55.3	17:55.6				AC 58 05 3A FF
+42	answer	18:01.4	18:11.0	1	17:55.0		1D 44 1F 2B BE

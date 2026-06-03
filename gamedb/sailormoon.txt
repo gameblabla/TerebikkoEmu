@@ -1,0 +1,59 @@
+# name Sailor Moon
+# mania_anchor AC B2 55 35 FE
+#	Type	Start	End	Answer	Checkpoint	Cue	Bytes
+1	pickup	01:02.6	01:06.4		01:02.0		A8 C0 15 7F FE
+2	sound	01:06.4	01:06.7				AC 80 95 37 FE
+3	sound	01:15.2	01:15.4				AC F8 8A 61 FF
+4	answer	01:30.9	01:40.5	2	01:14.8		0D 45 5F 2B AA
+5	sound	01:51.0	01:51.2				AC 46 2A 7F
+6	pickup	02:48.1	02:51.8		02:47.4		A8 00 15 7F FE
+7	sound	02:51.8	02:52.1				AC 98 45 3E FF
+8	sound	03:01.6	03:01.8				AC C0 05 73 FF
+9	answer	03:14.6	03:24.6	4	03:01.2		0D 55 CF 6B A3
+10	sound	03:34.6	03:34.8				AC 90 02 9B 7F
+11	pickup	05:16.9	05:20.7		05:16.3		A8 10 15 FF FE
+12	sound	05:20.7	05:20.9				AF 82 0A 77
+13	sound	05:33.7	05:33.9				AE C0 05 33 FF
+14	answer	05:46.4	05:56.0	3	05:33.3		0D 33 8F 2C C7
+15	sound	06:03.2	06:03.4				AC 70 05 B9 FF
+16	sound	06:10.0	06:10.2				AC 80 15 37 FE
+17	sound	06:18.7	06:18.7				AE C0 05 B3 FF
+18	answer	06:31.5	06:41.1	2	06:18.3		1D 45 5F 2B AA
+19	sound	06:52.4	06:52.6				AC 80 AA 6F FD
+20	sound	07:01.1	07:01.4				AC C8 05 B3 FF
+21	answer	07:13.9	07:23.5	1	07:00.7		0D 3C 0F 3C FF
+22	sound	07:31.7	07:31.9				AC 90 27 36 FD
+23	sound	07:42.0	07:42.2				AC F8 05 30 FF
+24	sound	07:58.6	07:58.6				AC E8 15 31 FE
+25	answer	08:13.4	08:23.4	1	07:58.2		0D 55 1F 2A AE
+26	sound	08:34.2	08:34.2				AC 40 55 3B FE
+27	pickup	09:13.4	09:18.0		09:12.8		A8 81 2A FF
+28	sound	09:18.0	09:18.3				AC C0 45 33 FF
+29	sound	09:30.8	09:31.0				AE C0 05 B3 FF
+30	answer	09:43.5	09:53.1	2	09:30.4		0D 55 4F 2A D7
+31	sound	10:04.3	10:04.6				AC B2 55 35 FE
+32	intro	14:13.1	14:13.1				A0 00 85 FF FF
+33	pickup	16:19.7	16:23.9		16:19.1		A9 00 1D 7F FF
+34	sound	16:23.9	16:23.9				AC E0 15 31 FE
+35	sound	16:38.7	16:38.9				AC B2 15 3C FE
+36	answer	16:50.9	17:00.9	2	16:38.3		0D 35 5F 3D BA
+37	sound	17:08.7	17:08.9				AC 18 15 3E FE
+38	pickup	18:15.1	18:18.9		18:14.5		A8 00 1D 7F FE
+39	sound	18:18.9	18:19.1				AC B0 1D 34 FE
+40	answer	18:41.3	18:50.9	1	18:35.3		0D 00 1F 25 FF
+41	sound	18:53.0	18:53.3				AE E0 1E 67
+42	sound	19:16.8	19:17.1				AC 30 15 3C FF
+43	pickup	20:33.4	20:37.4		20:32.8		A8 80 15 7F FE
+44	sound	20:37.4	20:37.4				AC 60 35 39 FD
+45	sound	20:43.9	20:44.1				AC C4 05 37 FF
+46	answer	20:56.6	21:06.6	2	20:43.5		1D 00 5F 2F FF
+47	sound	21:09.0	21:09.2				AC E0 15 31 FE
+48	sound	21:34.1	21:34.4				AC 30 05 3C FF
+49	pickup	22:17.1	22:21.9		22:16.5		A8 00 15 7F FE
+50	sound	22:21.9	22:21.9				AC 70 15 B8 FE
+51	sound	22:29.7	22:30.0				AC 80 35 37 FE
+52	answer	22:38.5	22:48.1	2	22:29.3		1D 24 4E 2D BF
+53	sound	22:55.3	22:55.5				AC 30 05 3C FF
+54	pickup	26:30.5	26:34.3		26:30.0		A8 20 37 7F FD
+55	sound	26:34.3	26:34.5				AE A8 34 EB
+56	sound	26:49.0	26:49.2				AC 62 2E 77

@@ -1,0 +1,116 @@
+# Native 32-bit Windows frontend build for TerebikkoEmu.
+#
+# Cross-build from Linux with MinGW-w64:
+#   make -f src/Makefile.win32
+#
+# This target first cross-builds the supplied FFmpeg 8.1.1 tarball and then
+# links the emulator against that installed static FFmpeg tree. Win32 intentionally
+# avoids SDL3, XInput, Direct3D/D3D11VA/NVDEC, WASAPI/Core Audio, and
+# video-scaling options: the 32-bit frontend is GDI-only with software video
+# decode, WaveOut audio, and WinMM input.
+
+CSTD = -std=gnu11
+CC = i686-w64-mingw32-gcc
+PKG_CONFIG = pkg-config
+TARGET = terebikko-win32.exe
+BUILD = build/win32
+FFMPEG_PREFIX = $(abspath third_party/ffmpeg/install/win32)
+FFMPEG_PC = $(FFMPEG_PREFIX)/lib/pkgconfig
+
+FFMPEG_LIBS = libavformat libavcodec libavutil libswscale libswresample
+
+COMMON_DEFS  = -DWIN32_LEAN_AND_MEAN -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS
+# Keep the binary PE subsystem/OS version at 3.10 below, but do not set the
+# MinGW-w64 SDK feature macros to 0x030A.  Current MinGW-w64 headers expose
+# prototypes such as FindFirstFileEx*/RegQueryMultipleValues* while hiding the
+# associated typedefs at that level, which breaks <windows.h>.  0x0500 is the
+# lowest practical header target for the Win32 frontend because it exposes the
+# monitor and file APIs this code already uses, while still keeping this build
+# GDI/software-only through TB_WIN32_GDI_ONLY and the FFmpeg win32 config.
+COMMON_DEFS += -DWINVER=0x0500 -D_WIN32_WINNT=0x0500 -D_WIN32_WINDOWS=0x0410
+COMMON_DEFS += -DTB_WIN32_FRONTEND -DTB_WIN32_USE_WINMM_INPUT -DTB_WIN32_GDI_ONLY
+COMMON_DEFS += -DTB_WIN32_WAVEOUT_ONLY
+
+INCLUDES = -Isrc/core -Isrc/platform -Isrc/win32
+FFMPEG_CFLAGS_PKG := $(shell PKG_CONFIG_LIBDIR="$(FFMPEG_PC)" PKG_CONFIG_PATH= $(PKG_CONFIG) --cflags $(FFMPEG_LIBS) 2>/dev/null)
+FFMPEG_LDLIBS_PKG := $(shell PKG_CONFIG_LIBDIR="$(FFMPEG_PC)" PKG_CONFIG_PATH= $(PKG_CONFIG) --libs --static $(FFMPEG_LIBS) 2>/dev/null)
+
+# Always add the bundled FFmpeg include/lib prefix explicitly.  This keeps the
+# direct root makefile path working even when pkg-config is missing or the .pc
+# lookup fails; pkg-config is still preferred for the exact static dependency
+# list when available.
+FFMPEG_CFLAGS = -I$(FFMPEG_PREFIX)/include $(FFMPEG_CFLAGS_PKG)
+ifeq ($(strip $(FFMPEG_LDLIBS_PKG)),)
+FFMPEG_LDLIBS = -L$(FFMPEG_PREFIX)/lib -Wl,--start-group -lavformat -lavcodec -lswscale -lswresample -lavutil -Wl,--end-group -liconv -lz -latomic -lm -lmfuuid -lole32 -lstrmiids -luser32 -lbcrypt
+else
+FFMPEG_LDLIBS = -L$(FFMPEG_PREFIX)/lib $(FFMPEG_LDLIBS_PKG)
+endif
+
+# Fully static link: pull in libgcc, the C runtime helpers and (because the
+# MinGW toolchain uses the POSIX thread model) libwinpthread statically so the
+# resulting terebikko-win32.exe has no libgcc_s/libwinpthread-1.dll runtime
+# dependency. -lpthread is listed explicitly so the static winpthread archive is
+# always part of the link, satisfying any pthread references from FFmpeg/libgcc.
+STATIC_LDFLAGS = -static -static-libgcc
+
+# --large-address-aware lets this 32-bit binary use the full 2GB->4GB user
+# address space (on 64-bit Windows). The audio analyser decodes a whole file's
+# audio into per-channel float buffers, so a long (~25 min stereo) video needs
+# well over the default ~1.3GB usable heap; without this, decoding such files
+# fails with an out-of-memory "could not decode audio" error.
+LAA_LDFLAGS = -Wl,--large-address-aware
+
+CFLAGS = $(CSTD) -O2 -Wall -Wextra -Wno-unused-parameter $(COMMON_DEFS) $(INCLUDES) $(FFMPEG_CFLAGS)
+LDFLAGS = $(STATIC_LDFLAGS) $(LAA_LDFLAGS) -mwindows \
+  -Wl,--major-os-version,3,--minor-os-version,10 \
+  -Wl,--major-subsystem-version,3,--minor-subsystem-version,10 \
+  $(FFMPEG_LDLIBS) -lgdi32 -lwinmm -lole32 -loleaut32 -luuid \
+  -lcomctl32 -lmsimg32 -lcomdlg32 -lshell32 -luser32 -ladvapi32 \
+  -lbcrypt -lws2_32 -lpthread -lm
+
+CORE_SRC = \
+  src/core/tb_decode.c \
+  src/core/tb_events.c \
+  src/core/tb_game.c \
+  src/core/tb_gamedb.c \
+  src/core/tb_gamedb_data.c \
+  src/core/tb_mania_music.c \
+  src/core/tb_media.c \
+  src/core/tb_subs.c
+
+WIN32_SRC = \
+  src/win32/tb_win32_main.c \
+  src/win32/tb_win32_player.c \
+  src/win32/tb_win32_audio.c \
+  src/win32/tb_win32_video.c \
+  src/win32/tb_win32_sfx.c
+
+SRC = $(CORE_SRC) $(WIN32_SRC)
+OBJ = $(addprefix $(BUILD)/,$(SRC:.c=.o))
+
+all: ffmpeg
+	$(MAKE) -f src/Makefile.win32 app
+
+ffmpeg:
+	$(MAKE) -f src/Makefile.ffmpeg win32
+
+app: $(TARGET)
+
+check-ffmpeg:
+	@test -f "$(FFMPEG_PREFIX)/include/libavformat/avformat.h" || { echo "FFmpeg headers for win32 were not built; run: make -f src/Makefile.ffmpeg win32"; exit 1; }
+	@test -f "$(FFMPEG_PREFIX)/lib/libavformat.a" || { echo "FFmpeg libraries for win32 were not built; run: make -f src/Makefile.ffmpeg win32"; exit 1; }
+
+$(TARGET): $(OBJ) | check-ffmpeg
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+$(BUILD)/%.o: %.c | check-ffmpeg
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+clean:
+	rm -rf $(BUILD) $(TARGET)
+
+ffmpeg-clean:
+	$(MAKE) -f src/Makefile.ffmpeg clean
+
+.PHONY: all ffmpeg app check-ffmpeg clean ffmpeg-clean

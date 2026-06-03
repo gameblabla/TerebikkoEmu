@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=TerebikkoEmu
+GenericName=Terebikko / See 'N Say Emulator
+Comment=Play Bandai Terebikko and See 'N Say interactive video games
+Exec=TerebikkoEmu %f
+Icon=terebikkoemu
+Terminal=false
+Categories=Game;Emulator;
+MimeType=video/mp4;video/x-matroska;video/webm;video/quicktime;video/x-msvideo;
+Keywords=terebikko;seensay;telebikko;video;game;

@@ -1,0 +1,154 @@
+# FFmpeg 8.1.1 MinGW cross-build helper for the Win32/Win64 TerebikkoEmu backends.
+#
+# The emulator makefiles call this automatically before compiling the Windows
+# frontends. It installs static FFmpeg headers/libraries under:
+#   third_party/ffmpeg/install/win64
+#   third_party/ffmpeg/install/win32
+#
+# NVDEC note: FFmpeg's NVDEC hwaccels require NVIDIA's external
+# nv-codec-headers package. This project vendors that archive under
+# third_party/ffmpeg and installs it into a local pkg-config prefix before
+# configuring FFmpeg. Set NVDEC=no to force software+D3D11VA only for win64,
+# or set NV_CODEC_PKGCONFIG to override the bundled headers with another
+# ffnvcodec.pc. Win32 is always software-only: no D3D11VA and no NVDEC.
+
+FFMPEG_VERSION = 8.1.1
+FFMPEG_TARBALL = third_party/ffmpeg/ffmpeg-$(FFMPEG_VERSION).tar.xz
+FFMPEG_SRC = build/ffmpeg/ffmpeg-$(FFMPEG_VERSION)
+
+NV_CODEC_VERSION = 13.0.19.0
+NV_CODEC_TARBALL = third_party/ffmpeg/nv-codec-headers-$(NV_CODEC_VERSION).tar.gz
+NV_CODEC_SRC = build/ffmpeg/nv-codec-headers-$(NV_CODEC_VERSION)
+NV_CODEC_PREFIX = $(abspath third_party/ffmpeg/nvcodec)
+NV_CODEC_PC = $(NV_CODEC_PREFIX)/lib/pkgconfig
+
+JOBS ?= $(shell nproc 2>/dev/null || printf 4)
+
+PREFIX64 = $(abspath third_party/ffmpeg/install/win64)
+PREFIX32 = $(abspath third_party/ffmpeg/install/win32)
+BUILDDIR64 = build/ffmpeg/win64
+BUILDDIR32 = build/ffmpeg/win32
+
+# Default enables NVDEC when the bundled nv-codec-headers tarball is present.
+# Use NVDEC=no to force-disable NVIDIA decode, or NVDEC=yes to make missing
+# headers a hard error. NV_CODEC_PKGCONFIG may point at an external ffnvcodec.pc.
+NVDEC ?= auto
+NV_CODEC_PKGCONFIG ?=
+
+COMMON_CONFIG = \
+  --target-os=mingw32 \
+  --enable-cross-compile \
+  --enable-static \
+  --disable-shared \
+  --disable-programs \
+  --disable-doc \
+  --disable-debug \
+  --disable-avdevice \
+  --disable-network \
+  --enable-swscale \
+  --enable-swresample \
+  --pkg-config=pkg-config
+
+ifeq ($(strip $(NV_CODEC_PKGCONFIG)),)
+ifneq ($(wildcard $(NV_CODEC_TARBALL)),)
+ACTIVE_NV_CODEC_PKGCONFIG = $(NV_CODEC_PC)
+NV_CODEC_DEPS = $(NV_CODEC_PC)/ffnvcodec.pc
+else
+ACTIVE_NV_CODEC_PKGCONFIG =
+NV_CODEC_DEPS =
+endif
+else
+ACTIVE_NV_CODEC_PKGCONFIG = $(abspath $(NV_CODEC_PKGCONFIG))
+NV_CODEC_DEPS =
+endif
+
+ifeq ($(NVDEC),yes)
+ifeq ($(strip $(ACTIVE_NV_CODEC_PKGCONFIG)),)
+$(error NVDEC=yes requires $(NV_CODEC_TARBALL) or NV_CODEC_PKGCONFIG=/path/to/ffnvcodec/pkgconfig)
+endif
+NVDEC_CONFIG = --enable-ffnvcodec --enable-nvdec
+else ifeq ($(NVDEC),no)
+NVDEC_CONFIG = --disable-ffnvcodec --disable-nvdec --disable-cuvid --disable-nvenc
+else
+ifneq ($(strip $(ACTIVE_NV_CODEC_PKGCONFIG)),)
+NVDEC_CONFIG = --enable-ffnvcodec --enable-nvdec
+else
+NVDEC_CONFIG =
+endif
+endif
+
+WIN64_HW_CONFIG = --enable-d3d11va $(NVDEC_CONFIG)
+
+# The 32-bit/GDI backend is strictly software-decode-only.  Do not just disable
+# decode-side hwaccels here: FFmpeg 8.1.x will otherwise still build its Media
+# Foundation encoder objects (libavcodec/mfenc.o), and those objects include
+# D3D11/DXGI types such as ID3D11DeviceContext even when d3d11va is disabled.
+# The emulator never encodes or muxes media, so keep the win32 FFmpeg build
+# decode/demux-only and exclude the MF encoder path entirely.  Win64 keeps the
+# full feature set above.
+WIN32_HW_CONFIG = \
+  --disable-hwaccels \
+  --disable-d3d11va \
+  --disable-dxva2 \
+  --disable-ffnvcodec \
+  --disable-nvdec \
+  --disable-cuvid \
+  --disable-nvenc \
+  --disable-encoders \
+  --disable-muxers
+
+ifneq ($(strip $(ACTIVE_NV_CODEC_PKGCONFIG)),)
+PKGCONFIG_ENV = PKG_CONFIG_PATH="$(ACTIVE_NV_CODEC_PKGCONFIG):$$PKG_CONFIG_PATH"
+else
+PKGCONFIG_ENV =
+endif
+
+all: win64 win32
+
+nvcodec: $(NV_CODEC_PC)/ffnvcodec.pc
+
+win64: $(PREFIX64)/.built
+win32: $(PREFIX32)/.built
+
+$(NV_CODEC_PC)/ffnvcodec.pc: $(NV_CODEC_TARBALL)
+	@test -f "$(NV_CODEC_TARBALL)" || { echo "Missing $(NV_CODEC_TARBALL)"; exit 1; }
+	@mkdir -p build/ffmpeg "$(NV_CODEC_PREFIX)"
+	@rm -rf "$(NV_CODEC_SRC)"
+	tar -xf "$(NV_CODEC_TARBALL)" -C build/ffmpeg
+	$(MAKE) -C "$(NV_CODEC_SRC)" PREFIX="$(NV_CODEC_PREFIX)" LIBDIR=lib install
+
+$(FFMPEG_SRC)/configure: $(FFMPEG_TARBALL)
+	@test -f "$(FFMPEG_TARBALL)" || { echo "Missing $(FFMPEG_TARBALL)"; exit 1; }
+	@mkdir -p build/ffmpeg
+	@rm -rf "$(FFMPEG_SRC)"
+	tar -xf "$(FFMPEG_TARBALL)" -C build/ffmpeg
+
+$(PREFIX64)/.built: $(FFMPEG_SRC)/configure $(NV_CODEC_DEPS)
+	@rm -rf "$(BUILDDIR64)" "$(PREFIX64)"
+	@mkdir -p "$(BUILDDIR64)" "$(PREFIX64)"
+	cd "$(BUILDDIR64)" && $(PKGCONFIG_ENV) ../ffmpeg-$(FFMPEG_VERSION)/configure \
+	  --prefix="$(PREFIX64)" \
+	  --arch=x86_64 \
+	  --cross-prefix=x86_64-w64-mingw32- \
+	  $(COMMON_CONFIG) $(WIN64_HW_CONFIG)
+	$(MAKE) -C "$(BUILDDIR64)" -j$(JOBS)
+	$(MAKE) -C "$(BUILDDIR64)" install
+	@touch "$@"
+
+$(PREFIX32)/.built: $(FFMPEG_SRC)/configure
+	@rm -rf "$(BUILDDIR32)" "$(PREFIX32)"
+	@mkdir -p "$(BUILDDIR32)" "$(PREFIX32)"
+	cd "$(BUILDDIR32)" && $(PKGCONFIG_ENV) ../ffmpeg-$(FFMPEG_VERSION)/configure \
+	  --prefix="$(PREFIX32)" \
+	  --arch=x86 \
+	  --cross-prefix=i686-w64-mingw32- \
+	  --cpu=i686 \
+	  $(COMMON_CONFIG) $(WIN32_HW_CONFIG)
+	$(MAKE) -C "$(BUILDDIR32)" -j$(JOBS)
+	$(MAKE) -C "$(BUILDDIR32)" install
+	@touch "$@"
+
+clean:
+	rm -rf build/ffmpeg third_party/ffmpeg/install third_party/ffmpeg/nvcodec
+
+.PHONY: all nvcodec win64 win32 clean

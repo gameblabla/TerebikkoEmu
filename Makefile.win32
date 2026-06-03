@@ -1,0 +1,10 @@
+# Convenience wrapper for the native 32-bit Windows frontend.
+# Allows direct invocation from the project root:
+#   make -f Makefile.win32
+
+.DEFAULT_GOAL := all
+
+all app ffmpeg check-ffmpeg clean ffmpeg-clean:
+	$(MAKE) -f src/Makefile.win32 $@
+
+.PHONY: all app ffmpeg check-ffmpeg clean ffmpeg-clean

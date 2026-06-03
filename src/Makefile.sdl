@@ -1,0 +1,101 @@
+# SDL3 (master) MinGW cross-build helper for the Windows frontends.
+#
+# The Win64 frontend uses SDL3 for gamepad input. Rather than depend on a
+# system/distro SDL3 package, this imports the latest upstream SDL3 master
+# branch straight from git and cross-builds it statically with CMake. The
+# Win32/i686 frontend deliberately does not use SDL3, so only win64 is built
+# by default, but a win32 target is provided for completeness.
+#
+# Output (static archive + headers + pkg-config files):
+#   third_party/sdl/install/win64
+#   third_party/sdl/install/win32
+#
+# Override SDL_GIT to point at a local mirror, or SDL_GIT_REF to pin a tag/commit
+# instead of tracking master.
+
+SDL_GIT ?= https://github.com/libsdl-org/SDL
+SDL_GIT_REF ?= main
+
+SDL_SRC = build/sdl/SDL
+
+PREFIX64 = $(abspath third_party/sdl/install/win64)
+PREFIX32 = $(abspath third_party/sdl/install/win32)
+BUILDDIR64 = build/sdl/win64
+BUILDDIR32 = build/sdl/win32
+
+JOBS ?= $(shell nproc 2>/dev/null || printf 4)
+
+CMAKE ?= cmake
+
+# Common static, no-shared SDL3 configuration. Tests/examples are skipped so the
+# cross-build only produces the library the frontend links against.
+SDL_CMAKE_FLAGS = \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DSDL_STATIC=ON \
+  -DSDL_SHARED=OFF \
+  -DSDL_TEST_LIBRARY=OFF \
+  -DSDL_TESTS=OFF \
+  -DSDL_EXAMPLES=OFF \
+  -DSDL_INSTALL_TESTS=OFF
+
+all: win64 win32
+
+win64: $(PREFIX64)/lib/libSDL3.a
+win32: $(PREFIX32)/lib/libSDL3.a
+
+# Import the latest SDL3 master branch from git (shallow). Re-run `make -f
+# src/Makefile.sdl update` to pull newer commits.
+$(SDL_SRC)/CMakeLists.txt:
+	@mkdir -p build/sdl
+	@rm -rf "$(SDL_SRC)"
+	git clone --depth 1 --branch "$(SDL_GIT_REF)" "$(SDL_GIT)" "$(SDL_SRC)"
+
+update:
+	@if [ -d "$(SDL_SRC)/.git" ]; then \
+	  git -C "$(SDL_SRC)" fetch --depth 1 origin "$(SDL_GIT_REF)" && \
+	  git -C "$(SDL_SRC)" checkout -f FETCH_HEAD; \
+	else \
+	  $(MAKE) -f src/Makefile.sdl "$(SDL_SRC)/CMakeLists.txt"; \
+	fi
+
+$(PREFIX64)/lib/libSDL3.a: $(SDL_SRC)/CMakeLists.txt
+	@rm -rf "$(BUILDDIR64)" "$(PREFIX64)"
+	$(CMAKE) -S "$(SDL_SRC)" -B "$(BUILDDIR64)" \
+	  -DCMAKE_SYSTEM_NAME=Windows \
+	  -DCMAKE_SYSTEM_PROCESSOR=AMD64 \
+	  -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
+	  -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ \
+	  -DCMAKE_RC_COMPILER=x86_64-w64-mingw32-windres \
+	  -DCMAKE_FIND_ROOT_PATH=/usr/x86_64-w64-mingw32 \
+	  -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
+	  -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY \
+	  -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY \
+	  -DCMAKE_INSTALL_PREFIX="$(PREFIX64)" \
+	  $(SDL_CMAKE_FLAGS)
+	$(CMAKE) --build "$(BUILDDIR64)" -j$(JOBS)
+	$(CMAKE) --install "$(BUILDDIR64)"
+
+$(PREFIX32)/lib/libSDL3.a: $(SDL_SRC)/CMakeLists.txt
+	@rm -rf "$(BUILDDIR32)" "$(PREFIX32)"
+	$(CMAKE) -S "$(SDL_SRC)" -B "$(BUILDDIR32)" \
+	  -DCMAKE_SYSTEM_NAME=Windows \
+	  -DCMAKE_SYSTEM_PROCESSOR=x86 \
+	  -DCMAKE_C_COMPILER=i686-w64-mingw32-gcc \
+	  -DCMAKE_CXX_COMPILER=i686-w64-mingw32-g++ \
+	  -DCMAKE_RC_COMPILER=i686-w64-mingw32-windres \
+	  -DCMAKE_FIND_ROOT_PATH=/usr/i686-w64-mingw32 \
+	  -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
+	  -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY \
+	  -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY \
+	  -DCMAKE_INSTALL_PREFIX="$(PREFIX32)" \
+	  $(SDL_CMAKE_FLAGS)
+	$(CMAKE) --build "$(BUILDDIR32)" -j$(JOBS)
+	$(CMAKE) --install "$(BUILDDIR32)"
+
+clean:
+	rm -rf build/sdl/win64 build/sdl/win32 third_party/sdl/install
+
+distclean: clean
+	rm -rf "$(SDL_SRC)"
+
+.PHONY: all win64 win32 update clean distclean

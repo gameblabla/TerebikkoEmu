@@ -1,0 +1,122 @@
+# Native 64-bit Windows frontend build for TerebikkoEmu.
+#
+# Cross-build from Linux with MinGW-w64:
+#   make -f src/Makefile.win64
+#
+# This target first cross-builds the supplied FFmpeg 8.1.1 tarball and then
+# links the emulator against that installed static FFmpeg tree. Win64 keeps SDL3
+# for gamepad input, uses D3D11/GDI for video, and WASAPI/WaveOut for audio.
+
+CSTD = -std=gnu11
+CC = x86_64-w64-mingw32-gcc
+PKG_CONFIG = pkg-config
+TARGET = terebikko-win64.exe
+BUILD = build/win64
+FFMPEG_PREFIX = $(abspath third_party/ffmpeg/install/win64)
+FFMPEG_PC = $(FFMPEG_PREFIX)/lib/pkgconfig
+SDL_PREFIX = $(abspath third_party/sdl/install/win64)
+SDL_PC = $(SDL_PREFIX)/lib/pkgconfig
+
+FFMPEG_LIBS = libavformat libavcodec libavutil libswscale libswresample
+SDL_LIBS = sdl3
+
+COMMON_DEFS  = -DWIN32_LEAN_AND_MEAN -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS
+COMMON_DEFS += -D_WIN32_WINNT=0x0601 -DTB_WIN32_FRONTEND -DTB_WIN32_USE_SDL_INPUT
+
+INCLUDES = -Isrc/core -Isrc/platform -Isrc/win32
+FFMPEG_CFLAGS_PKG := $(shell PKG_CONFIG_LIBDIR="$(FFMPEG_PC)" PKG_CONFIG_PATH= $(PKG_CONFIG) --cflags $(FFMPEG_LIBS) 2>/dev/null)
+FFMPEG_LDLIBS_PKG := $(shell PKG_CONFIG_LIBDIR="$(FFMPEG_PC)" PKG_CONFIG_PATH= $(PKG_CONFIG) --libs --static $(FFMPEG_LIBS) 2>/dev/null)
+
+# Always add the bundled FFmpeg include/lib prefix explicitly.  This keeps the
+# direct root makefile path working even when pkg-config is missing or the .pc
+# lookup fails; pkg-config is still preferred for the exact static dependency
+# list when available.
+FFMPEG_CFLAGS = -I$(FFMPEG_PREFIX)/include $(FFMPEG_CFLAGS_PKG)
+ifeq ($(strip $(FFMPEG_LDLIBS_PKG)),)
+FFMPEG_LDLIBS = -L$(FFMPEG_PREFIX)/lib -Wl,--start-group -lavformat -lavcodec -lswscale -lswresample -lavutil -Wl,--end-group -liconv -lz -latomic -lm -lmfuuid -lole32 -lstrmiids -luser32 -lbcrypt
+else
+FFMPEG_LDLIBS = -L$(FFMPEG_PREFIX)/lib $(FFMPEG_LDLIBS_PKG)
+endif
+# SDL3 is cross-built from the upstream master branch into SDL_PREFIX as a static
+# archive (see src/Makefile.sdl). Resolve its include/link flags from the
+# generated sdl3.pc with a plain pkg-config pointed at that prefix; fall back to
+# an explicit static link line (libSDL3.a plus the Win32 system libraries SDL3
+# requires) when pkg-config or the .pc lookup is unavailable.
+SDL_CFLAGS_PKG := $(shell PKG_CONFIG_LIBDIR="$(SDL_PC)" PKG_CONFIG_PATH= $(PKG_CONFIG) --cflags $(SDL_LIBS) 2>/dev/null)
+SDL_LDLIBS_PKG := $(shell PKG_CONFIG_LIBDIR="$(SDL_PC)" PKG_CONFIG_PATH= $(PKG_CONFIG) --libs --static $(SDL_LIBS) 2>/dev/null)
+SDL_CFLAGS = -I$(SDL_PREFIX)/include $(SDL_CFLAGS_PKG)
+ifeq ($(strip $(SDL_LDLIBS_PKG)),)
+SDL_LDLIBS = -L$(SDL_PREFIX)/lib -lSDL3 -lm -lkernel32 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lversion -luuid -ladvapi32 -lsetupapi -lshell32 -lhid -ldinput8 -ldxguid -lcfgmgr32
+else
+SDL_LDLIBS = -L$(SDL_PREFIX)/lib $(SDL_LDLIBS_PKG)
+endif
+
+# Fully static link: pull in libgcc and (because the MinGW toolchain uses the
+# POSIX thread model) libwinpthread statically so terebikko-win64.exe carries no
+# libgcc_s/libwinpthread-1.dll runtime dependency alongside the static FFmpeg and
+# SDL3 archives. -lpthread keeps the static winpthread archive in the link.
+STATIC_LDFLAGS = -static -static-libgcc
+
+CFLAGS = $(CSTD) -O2 -Wall -Wextra -Wno-unused-parameter $(COMMON_DEFS) $(INCLUDES) $(FFMPEG_CFLAGS) $(SDL_CFLAGS)
+LDFLAGS = $(STATIC_LDFLAGS) -mwindows $(FFMPEG_LDLIBS) $(SDL_LDLIBS) -ld3d11 -ldxgi -ld3dcompiler -lgdi32 -lwinmm -lole32 -loleaut32 -luuid -lcomctl32 -lmsimg32 -lcomdlg32 -lshell32 -luser32 -ladvapi32 -lbcrypt -lws2_32 -lpthread -lm
+
+CORE_SRC = \
+  src/core/tb_decode.c \
+  src/core/tb_events.c \
+  src/core/tb_game.c \
+  src/core/tb_gamedb.c \
+  src/core/tb_gamedb_data.c \
+  src/core/tb_mania_music.c \
+  src/core/tb_media.c \
+  src/core/tb_subs.c
+
+PLATFORM_SRC = src/platform/tb_input.c
+WIN32_SRC = \
+  src/win32/tb_win32_main.c \
+  src/win32/tb_win32_player.c \
+  src/win32/tb_win32_audio.c \
+  src/win32/tb_win32_video.c \
+  src/win32/tb_win32_sfx.c
+
+SRC = $(CORE_SRC) $(PLATFORM_SRC) $(WIN32_SRC)
+OBJ = $(addprefix $(BUILD)/,$(SRC:.c=.o))
+
+# Build everything the Win64 frontend needs from source first (static FFmpeg
+# cross-build, then SDL3 cross-build from the upstream master branch), then link
+# the application against those installed static trees.
+all: ffmpeg sdl
+	$(MAKE) -f src/Makefile.win64 app
+
+ffmpeg:
+	$(MAKE) -f src/Makefile.ffmpeg win64
+
+sdl:
+	$(MAKE) -f src/Makefile.sdl win64
+
+app: $(TARGET)
+
+check-ffmpeg:
+	@test -f "$(FFMPEG_PREFIX)/include/libavformat/avformat.h" || { echo "FFmpeg headers for win64 were not built; run: make -f src/Makefile.ffmpeg win64"; exit 1; }
+	@test -f "$(FFMPEG_PREFIX)/lib/libavformat.a" || { echo "FFmpeg libraries for win64 were not built; run: make -f src/Makefile.ffmpeg win64"; exit 1; }
+
+check-sdl:
+	@test -f "$(SDL_PREFIX)/include/SDL3/SDL.h" || { echo "SDL3 headers for win64 were not built; run: make -f src/Makefile.sdl win64"; exit 1; }
+	@test -f "$(SDL_PREFIX)/lib/libSDL3.a" || { echo "SDL3 static library for win64 was not built; run: make -f src/Makefile.sdl win64"; exit 1; }
+
+$(TARGET): $(OBJ) | check-ffmpeg check-sdl
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+$(BUILD)/%.o: %.c | check-ffmpeg check-sdl
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+clean:
+	rm -rf $(BUILD) $(TARGET)
+
+ffmpeg-clean:
+	$(MAKE) -f src/Makefile.ffmpeg clean
+
+sdl-clean:
+	$(MAKE) -f src/Makefile.sdl clean
+
+.PHONY: all ffmpeg sdl app check-ffmpeg check-sdl clean ffmpeg-clean sdl-clean
