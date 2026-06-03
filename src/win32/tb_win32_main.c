@@ -46,6 +46,7 @@
 #ifndef TB_MAX
 #define TB_MAX(a,b) ((a) > (b) ? (a) : (b))
 #define TB_MIN(a,b) ((a) < (b) ? (a) : (b))
+#define TB_CLAMP(v,lo,hi) (TB_MIN(TB_MAX((v),(lo)),(hi)))
 #endif
 #define APP_CLASS L"TerebikkoEmuWin32"
 #define TIMER_FRAME 1
@@ -847,40 +848,121 @@ static void app_layout(App *a) {
             for (int i = 0; i < 4; i++) ShowWindow(a->btn_ans[i], SW_HIDE);
             return;
         }
-        int side = TB_MIN(380, TB_MAX(0, W / 2));
+        /* Scale the fullscreen phone lane from the monitor size instead of
+         * keeping it at a fixed 380 px.  4K displays need physically larger
+         * controls, while small/narrow fullscreen windows must still reserve a
+         * non-overlapping video area.  Clamp the lane to at most half the
+         * client width so the controls can never be placed over the video. */
+        int maxSide = TB_MAX(1, W / 2);
+        int side = TB_CLAMP(H / 3, 330, 760);
+        if (side > maxSide) side = maxSide;
         a->side_width = side;
         a->video_rect.left = 0; a->video_rect.top = 0; a->video_rect.right = TB_MAX(1, W - side); a->video_rect.bottom = TB_MAX(1, H);
         ShowWindow(a->btn_pickup, SW_SHOW);
         for (int i = 0; i < 4; i++) ShowWindow(a->btn_ans[i], SW_SHOW);
-        int gap = 14, btnH = 150, pickupH = 180;
-        int blockW = TB_MAX(1, side - 48), btnW = TB_MAX(1, (blockW - gap) / 2);
+
         int laneX = W - side;
-        int sx = laneX + (side - blockW) / 2;       /* horizontally center controls in right lane */
-        int blockH = 2 * (btnH + gap) + 10 + pickupH, sy = (H - blockH) / 2; if (sy < 12) sy = 12;
+        int marginX = TB_CLAMP(side / 12, 18, 54);
+        int marginY = TB_CLAMP(H / 24, 12, 64);
+        int gap = TB_CLAMP(TB_MIN(side, H) / 48, 10, 30);
+        int pickupGap = gap + gap / 2;
+        int blockW = TB_MAX(1, side - marginX * 2);
+        int btnW = TB_MAX(1, (blockW - gap) / 2);
+
+        int availH = TB_MAX(1, H - marginY * 2);
+        int btnH = TB_CLAMP(TB_MIN(H / 7, btnW), 72, 360);
+        int pickupH = TB_CLAMP((btnH * 6) / 5, 88, 430);
+        int blockH = 2 * btnH + gap + pickupGap + pickupH;
+        if (blockH > availH) {
+            int noGapH = TB_MAX(1, availH - gap - pickupGap);
+            btnH = TB_MAX(44, (noGapH * 5) / 16);       /* 2*btnH + 1.2*btnH */
+            pickupH = TB_MAX(54, noGapH - 2 * btnH);
+            blockH = 2 * btnH + gap + pickupGap + pickupH;
+            if (blockH > availH) {
+                gap = TB_MAX(4, gap / 2);
+                pickupGap = TB_MAX(4, pickupGap / 2);
+                blockH = 2 * btnH + gap + pickupGap + pickupH;
+            }
+        }
+
+        int sx = laneX + (side - blockW) / 2;          /* centered in right lane */
+        int sy = (H - blockH) / 2;                     /* centered vertically */
+        if (sy < marginY) sy = marginY;
         for (int i = 0; i < 4; i++) MoveWindow(a->btn_ans[i], sx + (i % 2) * (btnW + gap), sy + (i / 2) * (btnH + gap), btnW, btnH, TRUE);
-        sy += 2 * (btnH + gap) + 10;
+        sy += 2 * btnH + gap + pickupGap;
         MoveWindow(a->btn_pickup, sx, sy, blockW, pickupH, TRUE);
         return;
     }
 
     MoveWindow(a->status_label, 8, H-statusH, W-16, statusH, TRUE);
-    int toolbarH=42; int side=330; a->side_width=side;
-    a->video_rect.left=0; a->video_rect.top=0; a->video_rect.right=TB_MAX(1,W-side); a->video_rect.bottom=TB_MAX(1,H-toolbarH-statusH);
-    int y=H-toolbarH-statusH+6, x=8;
+    int toolbarH = 42;
+
+    /* Windowed player mode uses the same proportional Terebikko phone sizing
+     * policy as fullscreen.  The old fixed 330 px lane and 78/90 px buttons
+     * were too small on large/4K windows and could become badly aligned as the
+     * client height changed.  Keep the lane non-overlapping by reserving it
+     * from the right edge and clamping it to at most half the window width. */
+    int playH = TB_MAX(1, H - toolbarH - statusH);
+    int maxSide = TB_MAX(1, W / 2);
+    int side = TB_CLAMP(playH / 3, 330, 700);
+    if (side > maxSide) side = maxSide;
+    a->side_width = side;
+    a->video_rect.left = 0;
+    a->video_rect.top = 0;
+    a->video_rect.right = TB_MAX(1, W - side);
+    a->video_rect.bottom = playH;
+
+    int y = H - toolbarH - statusH + 6, x = 8;
     HWND tb[] = {a->btn_gallery,a->btn_play,a->btn_restart,a->btn_save,a->btn_load,a->btn_fullscreen}; int bw[] = {96,72,82,66,66,94};
     for (int i=0;i<6;i++) { MoveWindow(tb[i],x,y,bw[i],30,TRUE); x+=bw[i]+6; }
-    MoveWindow(a->time_label, W-side-176, y+6, 170,24, TRUE);
-    int sx=W-side+14, sy=14;
-    int cardW = (side - 38) / 2;
-    MoveWindow(a->cap_score,sx,sy,cardW,16,TRUE); MoveWindow(a->cap_streak,sx+cardW+10,sy,cardW,16,TRUE); sy+=18;
-    MoveWindow(a->hud_score,sx,sy,cardW,28,TRUE); MoveWindow(a->hud_streak,sx+cardW+10,sy,cardW,28,TRUE); sy+=34;
-    MoveWindow(a->cap_lives,sx,sy,cardW,16,TRUE); MoveWindow(a->cap_correct,sx+cardW+10,sy,cardW,16,TRUE); sy+=18;
-    MoveWindow(a->hud_lives,sx,sy,cardW,28,TRUE); MoveWindow(a->hud_correct,sx+cardW+10,sy,cardW,28,TRUE); sy+=40;
-    MoveWindow(a->mode_badge,sx,sy,150,26,TRUE); sy+=44;
-    int btnW=(side-38)/2, btnH=78;
-    for(int i=0;i<4;i++) MoveWindow(a->btn_ans[i], sx+(i%2)*(btnW+10), sy+(i/2)*(btnH+10), btnW, btnH, TRUE);
-    sy += 2*(btnH+10)+8;
-    MoveWindow(a->btn_pickup, sx, sy, side-28, 90, TRUE);
+    MoveWindow(a->time_label, TB_MAX(8, W-side-176), y+6, 170,24, TRUE);
+
+    int laneX = W - side;
+    int laneH = playH;
+    int marginX = TB_CLAMP(side / 24, 14, 38);
+    int marginTop = TB_CLAMP(laneH / 48, 10, 32);
+    int marginBot = TB_CLAMP(laneH / 48, 10, 32);
+    int gap = TB_CLAMP(TB_MIN(side, laneH) / 60, 8, 24);
+    int cardGap = TB_CLAMP(side / 32, 8, 20);
+    int sx = laneX + marginX;
+    int sy = marginTop;
+    int blockW = TB_MAX(1, side - marginX * 2);
+    int cardW = TB_MAX(1, (blockW - cardGap) / 2);
+
+    MoveWindow(a->cap_score,sx,sy,cardW,16,TRUE); MoveWindow(a->cap_streak,sx+cardW+cardGap,sy,cardW,16,TRUE); sy+=18;
+    MoveWindow(a->hud_score,sx,sy,cardW,28,TRUE); MoveWindow(a->hud_streak,sx+cardW+cardGap,sy,cardW,28,TRUE); sy+=34;
+    MoveWindow(a->cap_lives,sx,sy,cardW,16,TRUE); MoveWindow(a->cap_correct,sx+cardW+cardGap,sy,cardW,16,TRUE); sy+=18;
+    MoveWindow(a->hud_lives,sx,sy,cardW,28,TRUE); MoveWindow(a->hud_correct,sx+cardW+cardGap,sy,cardW,28,TRUE); sy+=40;
+    MoveWindow(a->mode_badge,sx,sy,TB_MIN(blockW, 150 + side / 10),26,TRUE);
+
+    int btnAreaTop = sy + TB_CLAMP(laneH / 36, 28, 72);
+    int btnAreaBottom = TB_MAX(btnAreaTop + 1, laneH - marginBot);
+    int availH = TB_MAX(1, btnAreaBottom - btnAreaTop);
+    int btnW = TB_MAX(1, (blockW - gap) / 2);
+    int btnH = TB_CLAMP(TB_MIN(laneH / 7, btnW), 60, 320);
+    int pickupGap = gap + gap / 2;
+    int pickupH = TB_CLAMP((btnH * 6) / 5, 72, 380);
+    int phoneH = 2 * btnH + gap + pickupGap + pickupH;
+
+    if (phoneH > availH) {
+        gap = TB_MIN(gap, TB_MAX(2, availH / 32));
+        pickupGap = TB_MIN(pickupGap, TB_MAX(2, availH / 24));
+        int noGapH = TB_MAX(1, availH - gap - pickupGap);
+        btnH = TB_MAX(12, (noGapH * 5) / 16);
+        pickupH = TB_MAX(16, noGapH - 2 * btnH);
+        phoneH = 2 * btnH + gap + pickupGap + pickupH;
+        if (phoneH > availH) {
+            btnH = TB_MAX(1, (availH - gap - pickupGap) / 4);
+            pickupH = TB_MAX(1, availH - gap - pickupGap - 2 * btnH);
+            phoneH = 2 * btnH + gap + pickupGap + pickupH;
+        }
+    }
+
+    sy = btnAreaTop + (availH - phoneH) / 2;       /* vertically centered in remaining lane */
+    if (sy < btnAreaTop) sy = btnAreaTop;
+    for(int i=0;i<4;i++) MoveWindow(a->btn_ans[i], sx+(i%2)*(btnW+gap), sy+(i/2)*(btnH+gap), btnW, btnH, TRUE);
+    sy += 2 * btnH + gap + pickupGap;
+    MoveWindow(a->btn_pickup, sx, sy, blockW, pickupH, TRUE);
 }
 
 static void build_menu(App *a) {
@@ -993,15 +1075,24 @@ static void draw_button(App *a, LPDRAWITEMSTRUCT d) {
     HBRUSH brush = CreateSolidBrush(bg);
     HPEN pen = CreatePen(PS_SOLID, 1, border ? COL_BORDER : bg);
     HGDIOBJ ob = SelectObject(d->hDC, brush), op = SelectObject(d->hDC, pen);
-    int rad = (id>=ID_BTN_ANS1 && id<=ID_BTN_PICKUP) ? 18 : 12;
+    int bh = r.bottom - r.top;
+    int rad = (id>=ID_BTN_ANS1 && id<=ID_BTN_PICKUP) ? TB_CLAMP(bh / 8, 18, 44) : 12;
     RoundRect(d->hDC, r.left, r.top, r.right, r.bottom, rad, rad);
     SelectObject(d->hDC, ob); SelectObject(d->hDC, op); DeleteObject(brush); DeleteObject(pen);
 
     WCHAR txt[256]; GetWindowTextW(d->hwndItem, txt, 256);
-    HGDIOBJ of = SelectObject(d->hDC, (HFONT)SendMessageW(d->hwndItem, WM_GETFONT, 0, 0));
+    HFONT dyn_font = NULL;
+    HFONT base_font = (HFONT)SendMessageW(d->hwndItem, WM_GETFONT, 0, 0);
+    if (id >= ID_BTN_ANS1 && id <= ID_BTN_PICKUP) {
+        int px = (id == ID_BTN_PICKUP) ? TB_CLAMP(bh / 4, 28, 86) : TB_CLAMP(bh / 3, 30, 96);
+        dyn_font = CreateFontW(-px,0,0,0,FW_BOLD,0,0,0,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");
+        if (dyn_font) base_font = dyn_font;
+    }
+    HGDIOBJ of = SelectObject(d->hDC, base_font);
     SetBkMode(d->hDC, TRANSPARENT); SetTextColor(d->hDC, fg);
     DrawTextW(d->hDC, txt, -1, &r, DT_CENTER|DT_VCENTER|DT_SINGLELINE);
     SelectObject(d->hDC, of);
+    if (dyn_font) DeleteObject(dyn_font);
 }
 
 /* ---------------- controls / input settings dialog ---------------- */
