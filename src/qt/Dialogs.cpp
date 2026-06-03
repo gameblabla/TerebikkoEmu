@@ -18,11 +18,11 @@ AboutDialog::AboutDialog(QWidget *parent) : QDialog(parent) {
     auto *title = new QLabel("<h2>TerebikkoEmu</h2>");
     auto *body = new QLabel(
         "A native C11 / Qt6 emulator for Bandai Terebikko and Mattel See 'N Say "
-        "Video Phone interactive tapes.<br><br>"
+        "Video Phone interactive tapes, by gameblabla.<br><br>"
         "Drop in a video and play along with the four-button phone. The hidden "
         "~8 kHz control tones are decoded locally to recover questions, calls and "
         "answers. Hard mode turns it into a Dragon's-Lair quick-time challenge; "
-        "Mania is an endless remix.<br><br>"
+        "Minigame is an endless remix.<br><br>"
         "Core logic is pure C11; video via ffmpeg, audio + input via SDL3.");
     body->setWordWrap(true);
     auto *ok = new QPushButton("Close");
