@@ -1,9 +1,9 @@
 # TerebikkoEmu by gameblabla
 
-![User interface to TerebikkoEmu, playing Sailor S](https://raw.githubusercontent.com/gameblabla/TerebikkoEmu/refs/heads/main/screenshot.png)
+![User interface to TerebikkoEmu, playing Sailor S, on Firefox](https://raw.githubusercontent.com/gameblabla/TerebikkoEmu/refs/heads/main/screenshot.png)
 
 
-TerebikkoEmu is a player/emulator for the Bandai Terebikko and its american counterpart, the Mattel See 'N Say Videophone.
+TerebikkoEmu is a player/emulator for the Bandai Terebikko and its american counterpart, the Mattel See 'N Say Videophone for Windows/Linux, and Web browsers.
 
 It is capable of interpreting the 7-8khz tones encoded on the audio channels, and understanding the correct answer to the question asked.
 
@@ -79,9 +79,6 @@ This may not be always possible (Mario on Terebikko has no long streaks of music
 
 
 # TODO 
-
-- A native Windows / Linux build that leverages Qt, with gallery mode etc...
-This is going to happen very soon, stay tuned.
 
 - Play through more games
 Unfortunately many do not have proper VHS dumps. Some use the tones very curiously as well.
