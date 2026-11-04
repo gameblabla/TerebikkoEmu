@@ -1,81 +1,97 @@
+# ---------------------------------------------------------------------------
+# Build directories
+# ---------------------------------------------------------------------------
 /build/
-/build-appimage/
-*.o
-moc_*
-qrc_*
-ui_*
-.qmake.stash
-/TerebikkoEmu
-/terebikko-win32.exe
-/terebikko-win64.exe
-tests/tb_test_decode
-tests/tb_test_game
-tests/tb_test_analyze
-tests/tb_test_player
-tests/tb_test_gui
+/build-*/
+/bin/
+/obj/
+/out/
+/dist/
+/release/
+/Release/
+/debug/
+/Debug/
+/x86/
+/x64/
+/Win32/
+/Win64/
 /tests/guibuild/
-/tools/gen_gamedb
-/tools/appimage/
-*.AppImage
-/third_party/ffmpeg/install/
-/third_party/ffmpeg/nvcodec/
-/third_party/sdl/
-tools/gen_gamedb
-tools/appimage
-# Build output folders
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
 
-build/
-Build/
-BUILD/
-bin/
-obj/
-out/
-dist/
-release/
-Release/
-debug/
-Debug/
-x86/
-x64/
-Win32/
-Win64/
-
-# Executables and Windows build artifacts
-
-*.exe
-*.EXE
+# ---------------------------------------------------------------------------
+# Compiled objects, libraries and debug symbols
+# ---------------------------------------------------------------------------
+*.o
+*.obj
+*.lo
+*.la
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
 *.dll
-*.DLL
+*.dll.a
+*.d
+*.dep
 *.pdb
 *.ilk
 *.exp
-*.lib
 *.res
 *.map
 *.manifest
 
-# C/C++ object and static library files
+# ---------------------------------------------------------------------------
+# Qt generated sources
+# ---------------------------------------------------------------------------
+moc_*
+qrc_*
+ui_*
+*.moc
+.qmake.stash
 
-*.o
-*.obj
-*.a
-*.la
-*.lo
-*.d
-*.dep
+# ---------------------------------------------------------------------------
+# Local build outputs and helper binaries
+# ---------------------------------------------------------------------------
+/TerebikkoEmu
+/terebikko-win32.exe
+/terebikko-win64.exe
+/tools/gen_gamedb
+/tests/tb_test_decode
+/tests/tb_test_game
+/tests/tb_test_analyze
+/tests/tb_test_player
+/tests/tb_test_gui
 
-# Generated archives/packages
+# ---------------------------------------------------------------------------
+# AppImage / linuxdeploy artifacts
+# ---------------------------------------------------------------------------
+*.AppImage
+*.AppImage.zsync
+*.appimage
+/tools/appimage/
+/AppDir/
+*.AppDir/
+/squashfs-root/
 
+# ---------------------------------------------------------------------------
+# Release archives and packages
+# ---------------------------------------------------------------------------
 *.zip
 *.7z
 *.rar
 *.tar
-*.gz
+*.tar.gz
+*.tgz
 
-# Video/media files
-
-Videos/
-videos/
+# ---------------------------------------------------------------------------
+# Local media and subtitle files
+# ---------------------------------------------------------------------------
+/Videos/
+/videos/
 *.mp4
 *.MP4
 *.mkv
@@ -86,9 +102,6 @@ videos/
 *.MOV
 *.webm
 *.WEBM
-
-# Subtitle files
-
 *.srt
 *.SRT
 *.vtt
@@ -98,15 +111,16 @@ videos/
 *.ssa
 *.SSA
 
-# CMake files, if ever used
+# ---------------------------------------------------------------------------
+# Third-party build products
+# ---------------------------------------------------------------------------
+/third_party/ffmpeg/install/
+/third_party/ffmpeg/nvcodec/
+/third_party/sdl/
 
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-compile_commands.json
-
+# ---------------------------------------------------------------------------
 # Visual Studio / Windows IDE files
-
+# ---------------------------------------------------------------------------
 .vs/
 *.suo
 *.user
@@ -115,12 +129,9 @@ compile_commands.json
 *.sdf
 *.ipch
 
-# MinGW/MSYS temporary files
-
-*.stackdump
-
-# Logs and temporary files
-
+# ---------------------------------------------------------------------------
+# Logs, temporary files and crash dumps
+# ---------------------------------------------------------------------------
 *.log
 *.tmp
 *.temp
@@ -128,14 +139,15 @@ compile_commands.json
 *.orig
 *.swp
 *~
+*.stackdump
+/core
+/core.*
 
-# OS/editor junk
-
+# ---------------------------------------------------------------------------
+# OS / editor junk
+# ---------------------------------------------------------------------------
 .DS_Store
 Thumbs.db
 desktop.ini
 .vscode/
 .idea/
-*.cfg
-*.AppImage
-*.appimage
