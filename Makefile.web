@@ -1,0 +1,68 @@
+# TerebikkoEmu standalone web builds.
+#
+# Usage:
+#   make -f Makefile.web             # build release + debug
+#   make -f Makefile.web release     # web/index.html
+#   make -f Makefile.web debug       # web/debug.html
+#   make -f Makefile.web check       # syntax-check the JavaScript sources
+#   make -f Makefile.web clean
+#   make -f Makefile.web serve       # serve the release build on PORT (default 8000)
+#
+# Requires Node.js. Override NODE=..., WEB_OUT=..., PORT=... or BUILD_ID=... as needed.
+
+NODE ?= node
+WEB_OUT ?= web
+PORT ?= 8000
+BUILD_ID ?=
+
+TB_WEB_SRC := src/web
+TB_BUILD := $(TB_WEB_SRC)/build.js
+TB_PAGE := $(TB_WEB_SRC)/templates/page.html
+TB_BODY := $(TB_WEB_SRC)/templates/body.html
+TB_SCREEN := $(TB_WEB_SRC)/templates/screen.html
+TB_ASIDE := $(TB_WEB_SRC)/templates/aside.html
+TB_SETTINGS_MODAL := $(TB_WEB_SRC)/templates/settings-modal.html
+TB_STATE_MODAL := $(TB_WEB_SRC)/templates/state-modal.html
+TB_DEBUG_CONFIG := $(TB_WEB_SRC)/templates/debug-config.html
+TB_ENGINE := $(TB_WEB_SRC)/js/engine.js
+TB_CONTROLLER := $(TB_WEB_SRC)/js/controller.js
+TB_WORKER := $(TB_WEB_SRC)/js/decoder-worker.js
+TB_CSS := $(TB_WEB_SRC)/styles/app.css
+TB_PICKUP_COIN := $(wildcard pickupCoin.json)
+TB_SOURCES := $(TB_BUILD) $(TB_PAGE) $(TB_BODY) $(TB_SCREEN) $(TB_ASIDE) \
+	$(TB_SETTINGS_MODAL) $(TB_STATE_MODAL) $(TB_DEBUG_CONFIG) \
+	$(TB_ENGINE) $(TB_CONTROLLER) $(TB_WORKER) $(TB_CSS) $(TB_PICKUP_COIN) Makefile.web
+
+RELEASE_HTML := $(WEB_OUT)/index.html
+DEBUG_HTML := $(WEB_OUT)/debug.html
+TB_BUILD_ID_ARG := $(if $(strip $(BUILD_ID)),--build-id "$(BUILD_ID)",)
+
+.DEFAULT_GOAL := all
+
+.PHONY: all release debug check clean serve
+
+all: release debug
+
+release: $(RELEASE_HTML)
+
+debug: $(DEBUG_HTML)
+
+$(RELEASE_HTML): $(TB_SOURCES)
+	@mkdir -p "$(dir $@)"
+	$(NODE) "$(TB_BUILD)" --release --out "$@" $(TB_BUILD_ID_ARG)
+
+$(DEBUG_HTML): $(TB_SOURCES)
+	@mkdir -p "$(dir $@)"
+	$(NODE) "$(TB_BUILD)" --debug --out "$@" $(TB_BUILD_ID_ARG)
+
+check:
+	$(NODE) --check "$(TB_BUILD)"
+	$(NODE) --check "$(TB_ENGINE)"
+	$(NODE) --check "$(TB_CONTROLLER)"
+	$(NODE) --check "$(TB_WORKER)"
+
+clean:
+	rm -f "$(RELEASE_HTML)" "$(DEBUG_HTML)"
+
+serve: release
+	python3 -m http.server "$(PORT)" --directory "$(WEB_OUT)"

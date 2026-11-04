@@ -1,0 +1,37 @@
+      <div id="stage">
+      <div class="screen" id="screen">
+        <video id="video" playsinline preload="metadata"></video>
+        <div class="maniaTransition hidden" id="maniaTransition"><canvas class="maniaTransitionFrame old" id="maniaTransitionOld"></canvas><canvas class="maniaTransitionFrame new" id="maniaTransitionNew"></canvas></div>
+        <div class="subtitleOverlay hidden" id="subtitleOverlay"></div>
+        <div class="overlay" id="emptyOverlay"><div class="drop" id="dropZone"><b>Drop a Terebikko / See 'N Say video here</b><span>MP4 / WebM / MKV. Embedded MKV text subtitles are extracted locally when present; browser-exposed captions and sidecar .srt/.vtt/.ass subtitles are also supported when selected with the video or dropped next to it, including inside a dropped folder.</span></div></div>
+        <div class="overlay hidden startOverlay" id="startOverlay"><div class="startButton" role="button" aria-label="Start"><div class="playGlyph">&#9654;</div></div></div>
+        <div class="overlay hidden decodeOverlay" id="decodeOverlay"><div class="decodeCard"><b>Audio decode</b><div class="decodeProgress"><i id="decodeProgressBar"></i></div><div class="mini" id="decodeProgressText">Decoding audio...</div></div></div>
+        <div class="overlay hidden statusOverlay" id="statusOverlay"><div class="bigStatus" id="statusText"></div></div>
+        <div class="overlay hidden callOverlay" id="callOverlay"><div class="callCard"><div class="em">&#9742;</div><h2 id="callTitle">INCOMING CALL</h2><p id="callHint">Pick up the phone</p></div></div>
+        <div class="qteRing" id="qteRing"><span id="qteNum">--</span></div>
+        <div class="overlay hidden difficultyOverlay" id="difficultyOverlay"><div class="difficultyCard">
+          <div class="difficultyTabs">
+            <button class="difficultyChoice" data-mode="easy">Easy</button>
+            <button class="difficultyChoice" data-mode="hard">Hard</button>
+            <button class="difficultyChoice" data-mode="veryHard">Very hard</button>
+            <button class="difficultyChoice" data-mode="mania">Minigame</button>
+          </div>
+          <div class="difficultyText">Choose a mode to continue. Easy is free play. Hard retries misses from checkpoints. Very hard shortens cue windows and punishes early input. Minigame is an endless high-score remix with random decoded clips, rising speed, multi-pickup bursts, questions, and short breaks.</div>
+        </div></div>
+        <div class="gameOver hidden" id="gameOver"><div class="inner"><div class="big" id="gameOverText">MISS!</div><div class="small" id="gameOverSub"></div></div></div>
+        <div class="results hidden" id="results"><div class="resultsCard"><h2 id="resultTitle">Results</h2><div class="score" id="resultScore">0</div><p id="resultLine"></p><div class="resultsActions"><button class="btn primary hidden" id="resultRetry">Try again</button><button class="btn hidden" id="resultDifficulty">Switch difficulty</button><button class="btn" id="resultsClose">Close</button></div></div></div>
+      </div>
+      </div>
+      <div class="videoBar">
+        <button class="btn" id="uploadBtn">Load file</button>
+        <button class="btn primary" id="playPause" disabled title="Load a video with a decodable audio track first.">Play</button>
+        <button class="btn" id="restartBtn">Restart</button>
+        <button class="btn" id="stateBtn" disabled title="Save states are available in Easy and Hard only.">Save State</button>
+        <button class="btn" id="fullscreenBtn" title="Fullscreen">&#9974; Fullscreen</button>
+        {{DEBUG_BAR}}
+        <div class="timeBox"><span id="curTime">00:00.0</span> / <span id="durTime">--:--</span></div>
+      </div>
+      <div class="config">
+        <div class="progress"><i id="progressBar"></i></div>
+        <div class="mini" id="progressText">Load a video. Questions, calls and answers are decoded from the hidden 8 kHz pulses on either channel.</div>
+      </div>

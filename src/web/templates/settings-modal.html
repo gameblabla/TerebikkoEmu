@@ -1,0 +1,37 @@
+  <div class="modal hidden" id="settingsModal"><div class="modalCard">
+    <h2>Settings</h2>
+    <label class="optRow desktopOnly"><span>Fullscreen side controls</span>
+      <input id="fullscreenControlsOpt" type="checkbox" />
+      <span class="mini">Keep the video on the left and use the remaining space for buttons</span>
+    </label>
+    <label class="optRow"><span>Gamepad rumble</span>
+      <input id="gamepadRumbleOpt" type="checkbox" />
+      <span class="mini">Vibrate on phone-ring prompts when the browser and controller support it</span>
+    </label>
+    <div class="musicOpt">
+      <div>
+        <b>Minigame music</b>
+        <span class="mini" id="maniaMusicName">No custom music selected</span>
+        <span class="mini">Custom music is used first. Without it, Minigame falls back to detected or generated music.</span>
+      </div>
+      <div class="musicOptActions"><button class="btn" id="chooseManiaMusic">Choose audio</button><button class="btn" id="clearManiaMusic" disabled>Clear</button></div>
+    </div>
+    <h2 style="margin-top:16px;font-size:16px">Keyboard controls — click a row, then press a key</h2>
+    <div class="row keyRow" data-action="ans1"><span>Answer 1</span><span class="keyVal"></span></div>
+    <div class="row keyRow" data-action="ans2"><span>Answer 2</span><span class="keyVal"></span></div>
+    <div class="row keyRow" data-action="ans3"><span>Answer 3</span><span class="keyVal"></span></div>
+    <div class="row keyRow" data-action="ans4"><span>Answer 4</span><span class="keyVal"></span></div>
+    <div class="row keyRow" data-action="pickup"><span>Pick up phone</span><span class="keyVal"></span></div>
+    <div class="row keyRow" data-action="pause"><span>Play / pause</span><span class="keyVal"></span></div>
+    <div class="row keyRow" data-action="fullscreen"><span>Fullscreen</span><span class="keyVal"></span></div>
+    <h2 style="margin-top:16px;font-size:16px">Gamepad controls — click a row, then press a button or move a stick</h2>
+    <div class="mini" id="gamepadStatus">No gamepad detected</div>
+    <div class="row padRow" data-action="ans1"><span>Answer 1</span><span class="padVal"></span></div>
+    <div class="row padRow" data-action="ans2"><span>Answer 2</span><span class="padVal"></span></div>
+    <div class="row padRow" data-action="ans3"><span>Answer 3</span><span class="padVal"></span></div>
+    <div class="row padRow" data-action="ans4"><span>Answer 4</span><span class="padVal"></span></div>
+    <div class="row padRow" data-action="pickup"><span>Pick up phone</span><span class="padVal"></span></div>
+    <div class="row padRow" data-action="pause"><span>Play / pause</span><span class="padVal"></span></div>
+    <div class="row padRow" data-action="fullscreen"><span>Fullscreen</span><span class="padVal"></span></div>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap"><button class="btn primary" id="closeSettings">Done</button><button class="btn" id="resetKeys">Reset keys</button><button class="btn" id="resetGamepad">Reset gamepad</button></div>
+  </div></div>

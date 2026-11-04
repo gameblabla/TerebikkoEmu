@@ -1,0 +1,16 @@
+      <div class="config">
+        <details open style="margin-top:12px"><summary>Debug · decoded events</summary>
+          <div style="display:flex;gap:8px;margin:10px 0;flex-wrap:wrap">
+            <select id="eventSelect" style="flex:1;min-width:0;background:#0b0c18;color:#fff;border:1px solid var(--line);border-radius:9px;padding:7px"></select>
+            <select id="debugModeSelect" title="Debug difficulty" style="background:#0b0c18;color:#fff;border:1px solid var(--line);border-radius:9px;padding:7px">
+              <option value="easy">Easy</option>
+              <option value="hard">Hard</option>
+              <option value="veryHard">Very hard</option>
+              <option value="mania">Minigame</option>
+            </select>
+          </div>
+          <div class="mini" id="channelReport">No analysis yet.</div>
+          <div id="eventTable" style="margin-top:10px;max-height:240px;overflow:auto"></div>
+          <div class="log" id="log"></div>
+        </details>
+      </div>

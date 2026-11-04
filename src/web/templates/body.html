@@ -1,0 +1,19 @@
+<div class="wrap">
+  <header>
+    <div><h1>{{HEADING}}</h1><div class="sub">{{SUBTITLE}}</div></div>
+    <div class="topbtns"><button class="btn" id="uploadBtnTop">Load file</button><div class="pill" id="analysisPill">No video loaded</div></div>
+  </header>
+  <div class="grid" id="appGrid">
+    <main class="panel">
+{{SCREEN}}
+{{DEBUG_PANEL}}
+    </main>
+    <aside class="panel pad">
+{{ASIDE}}
+    </aside>
+  </div>
+</div>
+{{SETTINGS_MODAL}}
+{{STATE_MODAL}}
+<input class="fileInput" id="fileInput" type="file" multiple accept="video/*,audio/*,.srt,.vtt,.ass,.ssa,text/vtt,application/x-subrip,text/plain" />
+<input class="fileInput" id="maniaMusicInput" type="file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.oga,.opus,.wav,.flac,.webm" />

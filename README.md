@@ -78,6 +78,20 @@ This mode can accept a custom music file. For games like Sailormoon, if none is 
 This may not be always possible (Mario on Terebikko has no long streaks of music in its VHS tape), for those a simple "music" is played instead.
 
 
+# Building the web player
+
+The browser build lives in `src/web` and is written as plain JavaScript. Node.js is only used to assemble the standalone HTML files:
+
+```
+make -f Makefile.web            # builds both flavours
+make -f Makefile.web release    # web/index.html
+make -f Makefile.web debug      # web/debug.html
+make -f Makefile.web check      # syntax-check the JavaScript sources
+```
+
+Each output is self-contained: the CSS, decoder worker, engine and UI controller are inlined, so it can be opened directly or copied to a static web server without extra files. The debug build adds the decoded-event log, per-channel report and event jumping.
+
+
 # TODO 
 
 - Play through more games
