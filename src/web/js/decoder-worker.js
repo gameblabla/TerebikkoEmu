@@ -1,5 +1,5 @@
 /*
- * Terebikko pulse decoder worker.
+ * Terebikko / See 'N Say / Videosmarts pulse decoder worker.
  * Embedded as a text/plain script by src/web/build.js so the generated HTML
  * files remain standalone (no external worker file is fetched at runtime).
  */
@@ -45,7 +45,7 @@ function percentile(arr, pct){
   if(!vals.length) return 0;
   return vals[Math.max(0, Math.min(vals.length-1, Math.floor((pct/100)*(vals.length-1))))];
 }
-function makeEnvelope(samples, sr, freq){
+function makeEnvelope(samples, sr, freq, showProgress=true){
   freq = freq || 8000;
   const step = Math.max(1, Math.round(sr * 0.001));
   const win = Math.max(24, Math.round(sr * 0.0015));
@@ -58,7 +58,7 @@ function makeEnvelope(samples, sr, freq){
     let re=0, im=0;
     for(let n=0;n<win;n++){ const x=samples[pos+n]; re += x*cos[n]; im += x*sin[n]; }
     env[i] = Math.sqrt(re*re + im*im) / win;
-    if((i % 50000) === 0) postProgress(Math.min(70, (i / Math.max(1,bins))*70), 'Scanning 8 kHz envelope... ' + Math.round((i/Math.max(1,bins))*100) + '%');
+    if(showProgress && (i % 50000) === 0) postProgress(Math.min(70, (i / Math.max(1,bins))*70), 'Scanning ' + Math.round(freq/1000) + ' kHz envelope... ' + Math.round((i/Math.max(1,bins))*100) + '%');
   }
   return env;
 }
@@ -172,6 +172,93 @@ function parseAtThreshold(env, threshold){
   }
   return packets;
 }
+// Videosmarts answer words are four 10/20 ms bursts: start bit, two answer bits,
+// stop bit. Each word is sent four times. Some 9 kHz copies append a short zero burst;
+// the A/Apple sample uses an extended final mark.
+function videosmartsMarkBit(run){
+  const len = run.e-run.s;
+  if(len>=7 && len<=13) return '0';
+  if(len>=16 && len<=24) return '1';
+  return null;
+}
+function videosmartsAnswer(data){
+  // Screen order is yellow=1, blue=2, green=3, red=4; the payload is cyclically offset.
+  return [2,3,4,1][data & 3];
+}
+function videosmartsFrameAt(runs, start){
+  if(start>=runs.length || !runs[start].v || start+7>=runs.length) return null;
+  let bits='', mark=start, extendedStop=false;
+  for(let b=0;b<4;b++){
+    if(mark>=runs.length || !runs[mark].v) return null;
+    const markLen=runs[mark].e-runs[mark].s;
+    const bit=b===3 && markLen>=25 && markLen<=36 ? '1' : videosmartsMarkBit(runs[mark]);
+    if(bit==null) return null;
+    if(b===3 && markLen>=25 && markLen<=36) extendedStop=true;
+    bits += bit;
+    if(b<3){
+      if(mark+2>=runs.length || runs[mark+1].v) return null;
+      const gap=runs[mark+1].e-runs[mark+1].s;
+      if(gap<5 || gap>17) return null;
+      mark += 2;
+    }
+  }
+  if(bits[0]!=='1' || bits[3]!=='1' || mark+1>=runs.length || runs[mark+1].v) return null;
+  const endGap=runs[mark+1].e-runs[mark+1].s;
+  let nextRun;
+  if(endGap>=12 && endGap<=30 && mark+3<runs.length && runs[mark+2].v){
+    const tail=videosmartsMarkBit(runs[mark+2]);
+    const tailGap=runs[mark+3].e-runs[mark+3].s;
+    if(tail!=='0' || runs[mark+3].v || tailGap<40) return null;
+    nextRun=mark+4;
+  } else if(endGap>=40){
+    nextRun=mark+2;
+  } else return null;
+  const data=(bits[1]==='1'?2:0) | (bits[2]==='1'?1:0);
+  const answer=extendedStop && data===0 ? 1 : videosmartsAnswer(data);
+  return {start:runs[start].s, answer, nextRun};
+}
+function parseVideosmartsAtThreshold(env, threshold){
+  const runs=[];
+  let value=env[0]>threshold, start=0;
+  for(let i=1;i<env.length;i++){
+    const v=env[i]>threshold;
+    if(v!==value){ runs.push({v:value,s:start,e:i}); value=v; start=i; }
+  }
+  runs.push({v:value,s:start,e:env.length});
+  const packets=[];
+  for(let i=0;i<runs.length;){
+    const frames=[];
+    let at=i;
+    while(frames.length<4){
+      const f=videosmartsFrameAt(runs,at);
+      if(!f) break;
+      if(frames.length){
+        const delta=f.start-frames[frames.length-1].start;
+        if(delta<120 || delta>240) break;
+      }
+      frames.push(f);
+      if(f.nextRun<0 || f.nextRun>=runs.length) break;
+      at=f.nextRun;
+    }
+    if(frames.length>=3){
+      const votes=[0,0,0,0,0];
+      for(const f of frames) votes[f.answer]++;
+      let answer=0;
+      for(let a=1;a<=4;a++) if(votes[a]>votes[answer]) answer=a;
+      if(answer>=1 && votes[answer]>=3){
+        const data=(answer+2)&3;
+        const code=8|(data<<1)|1;
+        const payload=data.toString(2).padStart(2,'0');
+        packets.push({time:frames[0].start/1000, bits:'1'+payload+'1', bytes:[code], answer,
+          answerConfidence:votes[answer]/frames.length, answerCandidate:false,
+          kind:'answer', quality:0.95, nbits:4, mode:'videosmarts'});
+        i=frames[frames.length-1].nextRun;
+        if(i>=runs.length) break;
+      } else i++;
+    } else i++;
+  }
+  return packets;
+}
 function votePulseAnswer(reads){
   const valid = (reads || []).filter(p => p.answer >= 1 && p.answer <= 4);
   if(!valid.length) return {answer:null, confidence:0};
@@ -191,6 +278,14 @@ function dedupe(packets){
   packets.sort((a,b)=>a.time-b.time);
   const out=[];
   for(const p of packets){
+    if(p.mode === 'videosmarts' && p.answer >= 1 && p.answer <= 4){
+      let duplicate = -1;
+      for(let i=out.length-1;i>=0;i--){
+        if(p.time-out[i].time>=0.8) break;
+        if(out[i].mode==='videosmarts' && out[i].answer===p.answer){ duplicate=i; break; }
+      }
+      if(duplicate>=0){ if(packetScore(p)>packetScore(out[duplicate])) out[duplicate]=p; continue; }
+    }
     const last = out[out.length-1];
     if(last && Math.abs(p.time-last.time)<0.035){ if(packetScore(p) > packetScore(last)) out[out.length-1] = p; }
     else out.push(p);
@@ -203,12 +298,28 @@ function decode(samples, sr, freq){
   const env = makeEnvelope(samples, sr, freq);
   postProgress(72, 'Choosing thresholds...');
   const base = percentile(env, 50), high = percentile(env, 99.9);
-  if(!(high > base)) return [];
   const ratios = [0.22,0.28,0.34,0.40,0.46,0.52,0.60];
+  const videosmartsRatios = [0.28,0.40,0.52];
   let all=[];
-  for(let i=0;i<ratios.length;i++){
-    all = all.concat(parseAtThreshold(env, base + ratios[i]*(high-base)));
-    postProgress(75 + (i+1)/ratios.length*22, 'Parsing pulse packets... threshold '+(i+1)+'/'+ratios.length);
+  if(high>base){
+    for(let i=0;i<ratios.length;i++){
+      const threshold=base + ratios[i]*(high-base);
+      all = all.concat(parseAtThreshold(env, threshold));
+      postProgress(75 + (i+1)/ratios.length*22, 'Parsing pulse packets... threshold '+(i+1)+'/'+ratios.length);
+    }
+    if(freq>=7500 && freq<=9500){
+      for(const ratio of videosmartsRatios) all=all.concat(parseVideosmartsAtThreshold(env,base+ratio*(high-base)));
+    }
+  }
+  // The supplied Videosmarts samples switch between 8 and 9 kHz within one tape.
+  // Inspect both carriers so a global carrier estimate cannot discard either one.
+  for(const f of [8000,9000]){
+    if(Math.abs(f-freq)<1) continue;
+    const venv=makeEnvelope(samples,sr,f,false);
+    const vbase=percentile(venv,50), vhigh=percentile(venv,99.9);
+    if(vhigh>vbase){
+      for(const ratio of videosmartsRatios) all=all.concat(parseVideosmartsAtThreshold(venv,vbase+ratio*(vhigh-vbase)));
+    }
   }
   all.sort((a,b)=>a.time-b.time);
   // Vote each answer pulse over ALL raw threshold reads before dedupe collapses them.

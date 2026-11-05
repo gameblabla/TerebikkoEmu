@@ -21,6 +21,7 @@
 #include <QApplication>
 #include <QSettings>
 #include <QComboBox>
+#include <QColor>
 
 static QString fmtTime(double t) {
     if (t < 0 || t != t) return "--:--";
@@ -106,14 +107,23 @@ void MainWindow::buildMenus() {
     addAct(help, "&About TerebikkoEmu", QKeySequence(), this, &MainWindow::onAbout);
 }
 
-// Terebikko phone-button stylesheet: bright/"lit" when enabled, greyed out when
-// disabled - mirroring the web version where only the buttons you need light up
-// (1-4 while a question is up, Pick up while the phone is ringing).
-static QString phoneBtnCss(const QString &bg, const QString &fg, int font) {
+static QString blendWithGray(const QString &color, int grayPercent) {
+    const QColor source(color);
+    const int gray = 128;
+    const auto blend = [grayPercent, gray](int channel) {
+        return (channel * (100 - grayPercent) + gray * grayPercent + 50) / 100;
+    };
+    return QColor(blend(source.red()), blend(source.green()), blend(source.blue())).name();
+}
+
+// Answer buttons stay colored for Videosmarts when disabled, with a gray overlay.
+static QString phoneBtnCss(const QString &bg, const QString &fg, int font, bool videoSmarts = false) {
+    const QString disabledBg = videoSmarts ? blendWithGray(bg, 35) : QString("#191b29");
+    const QString disabledFg = videoSmarts ? blendWithGray(fg, 35) : QString("#41465f");
     return QString(
         "QPushButton{background:%1;color:%2;font-size:%3px;font-weight:bold;border:none;border-radius:16px;}"
-        "QPushButton:disabled{background:#191b29;color:#41465f;}"
-    ).arg(bg).arg(fg).arg(font);
+        "QPushButton:disabled{background:%4;color:%5;}"
+    ).arg(bg).arg(fg).arg(font).arg(disabledBg).arg(disabledFg);
 }
 
 static QPushButton *bigBtn(const QString &text, const QString &css) {
@@ -234,7 +244,7 @@ QWidget *MainWindow::buildPlayerPage() {
 
 // ---- menu actions ----
 void MainWindow::onLoadVideo() {
-    QString p = QFileDialog::getOpenFileName(this, "Load Terebikko / See 'N Say video", QString(),
+    QString p = QFileDialog::getOpenFileName(this, "Load Terebikko / See 'N Say / VideoSmarts video", QString(),
         "Media (*.mp4 *.m4v *.mkv *.webm *.mov *.avi *.mp3 *.m4a *.wav *.flac);;All files (*)");
     if (!p.isEmpty()) onGalleryActivated(p);
 }
@@ -246,6 +256,7 @@ void MainWindow::openPath(const QString &path) { onGalleryActivated(path); }
 void MainWindow::onGalleryActivated(const QString &path) {
     stack_->setCurrentIndex(1);
     engine_->loadFile(path);
+    applyFullscreenLayout();
     statusBar()->showMessage("Loading: " + QFileInfo(path).fileName());
 }
 void MainWindow::onToggleFullscreen() {
@@ -266,15 +277,25 @@ void MainWindow::applyFullscreenLayout() {
     phoneW_->setVisible(!fs || phoneInFs);
     sideW_->setVisible(!fs || phoneInFs);
 
-    // In fullscreen, scale the Terebikko buttons up proportionally; restore otherwise.
+    // In fullscreen, scale the answer controls up proportionally; restore otherwise.
     int answerFont = fs ? 64 : 34, answerH = fs ? 150 : 72;
     int pickupFont = fs ? 44 : 22, pickupH = fs ? 170 : 92;   /* Pick Up a bit taller */
-    const char *colors[4] = { "#db3545", "#40b96d", "#4184d9", "#e4cc42" };
-    const char *fg[4] = { "#fff", "#fff", "#fff", "#2d2d18" };
+    const bool videoSmarts = engine_->isVideosmarts();
+    const char *videoSmartsNames[4] = { "Yellow", "Blue", "Green", "Red" };
+    if (videoSmarts) answerFont = fs ? 40 : 24;
+    const char *classicColors[4] = { "#db3545", "#40b96d", "#4184d9", "#e4cc42" };
+    const char *classicFg[4] = { "#fff", "#fff", "#fff", "#2d2d18" };
+    const char *videoSmartsColors[4] = { "#e4cc42", "#4184d9", "#40b96d", "#db3545" };
+    const char *videoSmartsFg[4] = { "#2d2d18", "#fff", "#fff", "#fff" };
+    const char **colors = videoSmarts ? videoSmartsColors : classicColors;
+    const char **fg = videoSmarts ? videoSmartsFg : classicFg;
     for (int i = 0; i < 4; i++) {
+        answerBtns_[i]->setText(videoSmarts ? QString::fromLatin1(videoSmartsNames[i])
+                                            : QString::number(i + 1));
         answerBtns_[i]->setMinimumHeight(answerH);
-        answerBtns_[i]->setStyleSheet(phoneBtnCss(colors[i], fg[i], answerFont));
+        answerBtns_[i]->setStyleSheet(phoneBtnCss(colors[i], fg[i], answerFont, videoSmarts));
     }
+    pickupBtn_->setVisible(!videoSmarts);
     pickupBtn_->setMinimumHeight(pickupH);
     pickupBtn_->setStyleSheet(phoneBtnCss("#37d99a", "#06210f", pickupFont));
     sideW_->setFixedWidth(fs ? (phoneInFs ? 520 : 0) : 330);
@@ -302,6 +323,7 @@ void MainWindow::onProgress(double pct, const QString &text) {
 }
 void MainWindow::onAnalysisFinished(bool ok, const QString &msg) {
     if (!ok) { QMessageBox::warning(this, "Load failed", msg); statusBar()->showMessage("Load failed."); return; }
+    applyFullscreenLayout();
     statusBar()->showMessage(msg + "  ·  Decode: " + engine_->activeHwaccel());
     setWindowTitle("TerebikkoEmu - " + engine_->fileName());
     // Ask for difficulty first (web-style): the video stays paused/blanked until the

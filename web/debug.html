@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>TerebikkoEmu — Debug</title>
-<meta name="terebikko-build" content="terebikko-debug-2026-11-04" />
+<meta name="terebikko-build" content="terebikko-debug-2026-11-05" />
 <style>
 :root{--bg:#0c0d1a;--panel:#16182b;--ink:#eef1ff;--muted:#a6acd0;--line:#2c3050;--good:#37d99a;--bad:#ff5d74;--warn:#ffd166;--accent:#7c9cff;--red:#db3545;--green:#40b96d;--blue:#4184d9;--yellow:#e4cc42;}
 *{box-sizing:border-box}
@@ -87,6 +87,13 @@ video::-webkit-media-controls{display:none!important}
 .phoneBtn:active{transform:translateY(4px)}
 .phoneBtn:disabled{filter:grayscale(.55) brightness(.55);cursor:not-allowed;transform:none}
 .b1{background:linear-gradient(180deg,#ff6374,var(--red))}.b2{background:linear-gradient(180deg,#55d981,var(--green))}.b3{background:linear-gradient(180deg,#60a9ff,var(--blue))}.b4{background:linear-gradient(180deg,#ffe46b,var(--yellow));color:#2d2d18;text-shadow:none}
+body.videosmarts .b1{background:linear-gradient(180deg,#ffe46b,var(--yellow));color:#2d2d18;text-shadow:none}
+body.videosmarts .b2{background:linear-gradient(180deg,#60a9ff,var(--blue))}
+body.videosmarts .b3{background:linear-gradient(180deg,#55d981,var(--green))}
+body.videosmarts .b4{background:linear-gradient(180deg,#ff6374,var(--red));color:#fff;text-shadow:0 2px 5px rgba(0,0,0,.35)}
+body.videosmarts .phoneBtn{font-size:clamp(18px,6vw,38px)}
+body.videosmarts .phoneBtn:disabled{filter:none}
+body.videosmarts .phoneBtn:disabled::after{content:"";position:absolute;inset:0;border-radius:inherit;background:rgba(128,128,128,.35);pointer-events:none}
 .pickupBtn{width:100%;margin-top:10px;border:0;border-radius:16px;min-height:64px;font-size:20px;font-weight:900;letter-spacing:.04em;color:#06210f;background:linear-gradient(180deg,#8df0b0,#37d99a);box-shadow:inset 0 -6px 0 rgba(0,0,0,.16),0 9px 20px rgba(0,0,0,.22);cursor:pointer;transition:.1s}
 .pickupBtn:disabled{filter:grayscale(.6) brightness(.6);cursor:not-allowed}
 .pickupBtn.live{animation:pulse .7s ease-in-out infinite alternate}
@@ -130,6 +137,7 @@ body.fs.fsControls aside .mini{display:none}
 body.fs.fsControls aside .hud{margin-bottom:14px}
 body.fs.fsControls aside .phone{flex:1;grid-template-rows:1fr 1fr;min-height:0}
 body.fs.fsControls aside .phoneBtn{min-height:0;font-size:clamp(34px,7vh,72px);border-radius:14px}
+body.fs.fsControls.videosmarts aside .phoneBtn{font-size:clamp(18px,3.4vh,38px)}
 body.fs.fsControls aside .pickupBtn{min-height:clamp(68px,15vh,138px);font-size:clamp(20px,4vh,36px);border-radius:14px}
 body.drag:before{content:'Drop a video to load';position:fixed;z-index:9999;left:50%;top:16px;transform:translateX(-50%);padding:9px 16px;border:2px dashed var(--accent);border-radius:999px;background:rgba(12,13,25,.92);font-weight:800}
 
@@ -245,6 +253,7 @@ body.drag:before{content:'Drop a video to load';position:fixed;z-index:9999;left
   body.fs.fsControls aside > div:first-of-type{display:none!important}
   body.fs.fsControls aside .phone{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:0}
   body.fs.fsControls aside .phoneBtn{min-height:clamp(58px,10dvh,82px);font-size:clamp(26px,6dvh,38px);border-radius:11px}
+  body.fs.fsControls.videosmarts aside .phoneBtn{font-size:clamp(12px,2.5vw,18px)}
   body.fs.fsControls aside .pickupBtn{min-height:clamp(50px,8dvh,66px);margin-top:7px;font-size:clamp(17px,3.5dvh,22px);border-radius:11px}
   body.fs.fsControls .resultsCard{max-height:calc(100% - 16px)}
 }
@@ -264,7 +273,7 @@ body.drag:before{content:'Drop a video to load';position:fixed;z-index:9999;left
         <video id="video" playsinline preload="metadata"></video>
         <div class="maniaTransition hidden" id="maniaTransition"><canvas class="maniaTransitionFrame old" id="maniaTransitionOld"></canvas><canvas class="maniaTransitionFrame new" id="maniaTransitionNew"></canvas></div>
         <div class="subtitleOverlay hidden" id="subtitleOverlay"></div>
-        <div class="overlay" id="emptyOverlay"><div class="drop" id="dropZone"><b>Drop a Terebikko / See 'N Say video here</b><span>MP4 / WebM / MKV. Embedded MKV text subtitles are extracted locally when present; browser-exposed captions and sidecar .srt/.vtt/.ass subtitles are also supported when selected with the video or dropped next to it, including inside a dropped folder.</span></div></div>
+        <div class="overlay" id="emptyOverlay"><div class="drop" id="dropZone"><b>Drop a Terebikko / See 'N Say / VideoSmarts video here</b><span>MP4 / WebM / MKV. Embedded MKV text subtitles are extracted locally when present; browser-exposed captions and sidecar .srt/.vtt/.ass subtitles are also supported when selected with the video or dropped next to it, including inside a dropped folder.</span></div></div>
         <div class="overlay hidden startOverlay" id="startOverlay"><div class="startButton" role="button" aria-label="Start"><div class="playGlyph">&#9654;</div></div></div>
         <div class="overlay hidden decodeOverlay" id="decodeOverlay"><div class="decodeCard"><b>Audio decode</b><div class="decodeProgress"><i id="decodeProgressBar"></i></div><div class="mini" id="decodeProgressText">Decoding audio...</div></div></div>
         <div class="overlay hidden statusOverlay" id="statusOverlay"><div class="bigStatus" id="statusText"></div></div>
@@ -294,7 +303,7 @@ body.drag:before{content:'Drop a video to load';position:fixed;z-index:9999;left
       </div>
       <div class="config">
         <div class="progress"><i id="progressBar"></i></div>
-        <div class="mini" id="progressText">Load a video. Questions, calls and answers are decoded from the hidden 8 kHz pulses on either channel.</div>
+        <div class="mini" id="progressText">Load a video. Questions, calls and answers are decoded from the hidden control tones on either channel.</div>
       </div>
 
       <div class="config">
@@ -384,7 +393,7 @@ body.drag:before{content:'Drop a video to load';position:fixed;z-index:9999;left
 
 <script type="text/plain" id="decoderWorkerSource">
 /*
- * Terebikko pulse decoder worker.
+ * Terebikko / See 'N Say / Videosmarts pulse decoder worker.
  * Embedded as a text/plain script by src/web/build.js so the generated HTML
  * files remain standalone (no external worker file is fetched at runtime).
  */
@@ -430,7 +439,7 @@ function percentile(arr, pct){
   if(!vals.length) return 0;
   return vals[Math.max(0, Math.min(vals.length-1, Math.floor((pct/100)*(vals.length-1))))];
 }
-function makeEnvelope(samples, sr, freq){
+function makeEnvelope(samples, sr, freq, showProgress=true){
   freq = freq || 8000;
   const step = Math.max(1, Math.round(sr * 0.001));
   const win = Math.max(24, Math.round(sr * 0.0015));
@@ -443,7 +452,7 @@ function makeEnvelope(samples, sr, freq){
     let re=0, im=0;
     for(let n=0;n<win;n++){ const x=samples[pos+n]; re += x*cos[n]; im += x*sin[n]; }
     env[i] = Math.sqrt(re*re + im*im) / win;
-    if((i % 50000) === 0) postProgress(Math.min(70, (i / Math.max(1,bins))*70), 'Scanning 8 kHz envelope... ' + Math.round((i/Math.max(1,bins))*100) + '%');
+    if(showProgress && (i % 50000) === 0) postProgress(Math.min(70, (i / Math.max(1,bins))*70), 'Scanning ' + Math.round(freq/1000) + ' kHz envelope... ' + Math.round((i/Math.max(1,bins))*100) + '%');
   }
   return env;
 }
@@ -557,6 +566,93 @@ function parseAtThreshold(env, threshold){
   }
   return packets;
 }
+// Videosmarts answer words are four 10/20 ms bursts: start bit, two answer bits,
+// stop bit. Each word is sent four times. Some 9 kHz copies append a short zero burst;
+// the A/Apple sample uses an extended final mark.
+function videosmartsMarkBit(run){
+  const len = run.e-run.s;
+  if(len>=7 && len<=13) return '0';
+  if(len>=16 && len<=24) return '1';
+  return null;
+}
+function videosmartsAnswer(data){
+  // Screen order is yellow=1, blue=2, green=3, red=4; the payload is cyclically offset.
+  return [2,3,4,1][data & 3];
+}
+function videosmartsFrameAt(runs, start){
+  if(start>=runs.length || !runs[start].v || start+7>=runs.length) return null;
+  let bits='', mark=start, extendedStop=false;
+  for(let b=0;b<4;b++){
+    if(mark>=runs.length || !runs[mark].v) return null;
+    const markLen=runs[mark].e-runs[mark].s;
+    const bit=b===3 && markLen>=25 && markLen<=36 ? '1' : videosmartsMarkBit(runs[mark]);
+    if(bit==null) return null;
+    if(b===3 && markLen>=25 && markLen<=36) extendedStop=true;
+    bits += bit;
+    if(b<3){
+      if(mark+2>=runs.length || runs[mark+1].v) return null;
+      const gap=runs[mark+1].e-runs[mark+1].s;
+      if(gap<5 || gap>17) return null;
+      mark += 2;
+    }
+  }
+  if(bits[0]!=='1' || bits[3]!=='1' || mark+1>=runs.length || runs[mark+1].v) return null;
+  const endGap=runs[mark+1].e-runs[mark+1].s;
+  let nextRun;
+  if(endGap>=12 && endGap<=30 && mark+3<runs.length && runs[mark+2].v){
+    const tail=videosmartsMarkBit(runs[mark+2]);
+    const tailGap=runs[mark+3].e-runs[mark+3].s;
+    if(tail!=='0' || runs[mark+3].v || tailGap<40) return null;
+    nextRun=mark+4;
+  } else if(endGap>=40){
+    nextRun=mark+2;
+  } else return null;
+  const data=(bits[1]==='1'?2:0) | (bits[2]==='1'?1:0);
+  const answer=extendedStop && data===0 ? 1 : videosmartsAnswer(data);
+  return {start:runs[start].s, answer, nextRun};
+}
+function parseVideosmartsAtThreshold(env, threshold){
+  const runs=[];
+  let value=env[0]>threshold, start=0;
+  for(let i=1;i<env.length;i++){
+    const v=env[i]>threshold;
+    if(v!==value){ runs.push({v:value,s:start,e:i}); value=v; start=i; }
+  }
+  runs.push({v:value,s:start,e:env.length});
+  const packets=[];
+  for(let i=0;i<runs.length;){
+    const frames=[];
+    let at=i;
+    while(frames.length<4){
+      const f=videosmartsFrameAt(runs,at);
+      if(!f) break;
+      if(frames.length){
+        const delta=f.start-frames[frames.length-1].start;
+        if(delta<120 || delta>240) break;
+      }
+      frames.push(f);
+      if(f.nextRun<0 || f.nextRun>=runs.length) break;
+      at=f.nextRun;
+    }
+    if(frames.length>=3){
+      const votes=[0,0,0,0,0];
+      for(const f of frames) votes[f.answer]++;
+      let answer=0;
+      for(let a=1;a<=4;a++) if(votes[a]>votes[answer]) answer=a;
+      if(answer>=1 && votes[answer]>=3){
+        const data=(answer+2)&3;
+        const code=8|(data<<1)|1;
+        const payload=data.toString(2).padStart(2,'0');
+        packets.push({time:frames[0].start/1000, bits:'1'+payload+'1', bytes:[code], answer,
+          answerConfidence:votes[answer]/frames.length, answerCandidate:false,
+          kind:'answer', quality:0.95, nbits:4, mode:'videosmarts'});
+        i=frames[frames.length-1].nextRun;
+        if(i>=runs.length) break;
+      } else i++;
+    } else i++;
+  }
+  return packets;
+}
 function votePulseAnswer(reads){
   const valid = (reads || []).filter(p => p.answer >= 1 && p.answer <= 4);
   if(!valid.length) return {answer:null, confidence:0};
@@ -576,6 +672,14 @@ function dedupe(packets){
   packets.sort((a,b)=>a.time-b.time);
   const out=[];
   for(const p of packets){
+    if(p.mode === 'videosmarts' && p.answer >= 1 && p.answer <= 4){
+      let duplicate = -1;
+      for(let i=out.length-1;i>=0;i--){
+        if(p.time-out[i].time>=0.8) break;
+        if(out[i].mode==='videosmarts' && out[i].answer===p.answer){ duplicate=i; break; }
+      }
+      if(duplicate>=0){ if(packetScore(p)>packetScore(out[duplicate])) out[duplicate]=p; continue; }
+    }
     const last = out[out.length-1];
     if(last && Math.abs(p.time-last.time)<0.035){ if(packetScore(p) > packetScore(last)) out[out.length-1] = p; }
     else out.push(p);
@@ -588,12 +692,28 @@ function decode(samples, sr, freq){
   const env = makeEnvelope(samples, sr, freq);
   postProgress(72, 'Choosing thresholds...');
   const base = percentile(env, 50), high = percentile(env, 99.9);
-  if(!(high > base)) return [];
   const ratios = [0.22,0.28,0.34,0.40,0.46,0.52,0.60];
+  const videosmartsRatios = [0.28,0.40,0.52];
   let all=[];
-  for(let i=0;i<ratios.length;i++){
-    all = all.concat(parseAtThreshold(env, base + ratios[i]*(high-base)));
-    postProgress(75 + (i+1)/ratios.length*22, 'Parsing pulse packets... threshold '+(i+1)+'/'+ratios.length);
+  if(high>base){
+    for(let i=0;i<ratios.length;i++){
+      const threshold=base + ratios[i]*(high-base);
+      all = all.concat(parseAtThreshold(env, threshold));
+      postProgress(75 + (i+1)/ratios.length*22, 'Parsing pulse packets... threshold '+(i+1)+'/'+ratios.length);
+    }
+    if(freq>=7500 && freq<=9500){
+      for(const ratio of videosmartsRatios) all=all.concat(parseVideosmartsAtThreshold(env,base+ratio*(high-base)));
+    }
+  }
+  // The supplied Videosmarts samples switch between 8 and 9 kHz within one tape.
+  // Inspect both carriers so a global carrier estimate cannot discard either one.
+  for(const f of [8000,9000]){
+    if(Math.abs(f-freq)<1) continue;
+    const venv=makeEnvelope(samples,sr,f,false);
+    const vbase=percentile(venv,50), vhigh=percentile(venv,99.9);
+    if(vhigh>vbase){
+      for(const ratio of videosmartsRatios) all=all.concat(parseVideosmartsAtThreshold(venv,vbase+ratio*(vhigh-vbase)));
+    }
   }
   all.sort((a,b)=>a.time-b.time);
   // Vote each answer pulse over ALL raw threshold reads before dedupe collapses them.
@@ -849,7 +969,7 @@ const KEY_STORE = 'terebikko.keys', GAMEPAD_STORE = 'terebikko.gamepad', OPT_STO
 const STATE_DB_NAME = 'TerebikkoEmuStateDatabase', STATE_DB_VERSION = 1, STATE_DB_STORE = 'saveStates';
 
 const G = {
-  audioBuf:null, audioDecoded:false, audioDecoding:false, audioDecodeError:null, decodeProgressTimer:null, events:[], play:[], analysis:null,
+  audioBuf:null, audioDecoded:false, audioDecoding:false, audioDecodeError:null, decodeProgressTimer:null, events:[], play:[], analysis:null, videosmarts:false,
   subtitleCues:[], subtitleLabel:'', subtitleMode:'none', subtitleTrack:null, currentFileKey:null, currentFileMeta:null,
   curIdx:0, active:null, running:false, internalSeek:false, pauseLockUntil:0,
   score:0, streak:0, best:0, lives:3, correct:0, wrong:0, ended:false,
@@ -1124,6 +1244,7 @@ function beginAudioDecodeLoad(){
   G.audioDecoding = true;
   G.audioDecodeError = null;
   G.analysis = null;
+  setVideosmartsMode(false);
   clearSubtitles();
   G.events = [];
   G.play = [];
@@ -1146,6 +1267,7 @@ function failAudioDecodeLoad(err){
   G.audioDecoding = false;
   G.audioDecodeError = msg;
   G.analysis = null;
+  setVideosmartsMode(false);
   G.events = [];
   G.play = [];
   G.mania.musicClip = null;
@@ -1696,7 +1818,7 @@ async function analyze(file){
       startDecodeProgressPulse(22, 55, 'Decoding audio... Play is locked until decoding completes.');
       audioBuf = await ctx.decodeAudioData(buf.slice(0));
       stopDecodeProgressPulse();
-      setProgress(55, 'Audio decoded. Scanning channels for the 8 kHz signal...');
+      setProgress(55, 'Audio decoded. Scanning channels for control tones...');
     }catch(err){
       stopDecodeProgressPulse();
       throw new Error('No decodable audio track found. Load a video/audio file with an audio track supported by this browser.');
@@ -1717,9 +1839,10 @@ async function analyze(file){
 }
 async function reanalyze(){
   if(!G.audioBuf) return;
-  setProgress(58, 'Scanning channels for the 8 kHz signal...');
+  setProgress(58, 'Scanning channels for control tones...');
   const res = await analyzeChannels(G.audioBuf, 'auto', (v,t)=>setProgress(58 + v*0.42, t));
   G.analysis = res;
+  setVideosmartsMode(res.chosen.packets.some(p=>p.mode==='videosmarts'));
   G.events = buildEvents(res.chosen.packets, {carrier:res.chosen.carrier});
   G.play = playEvents(G.events);
   G.mania.musicClip = null;
@@ -2302,6 +2425,20 @@ function requestStartFromThumbnail(){
 }
 function buttonsEnabled(on){ document.querySelectorAll('.phoneBtn').forEach(b=>b.disabled = !on); }
 function pickupEnabled(on){ const b = $('pickupBtn'); if(b) b.disabled = !on; b && b.classList.toggle('live', on); }
+function setVideosmartsMode(on){
+  G.videosmarts = !!on;
+  if(document.body) document.body.classList.toggle('videosmarts', G.videosmarts);
+  const names = ['Yellow','Blue','Green','Red'];
+  document.querySelectorAll('.phoneBtn').forEach(b=>{
+    const answer = Number(b.dataset.answer);
+    b.textContent = G.videosmarts ? names[answer-1] : String(answer);
+  });
+  const pickup = $('pickupBtn');
+  if(pickup){
+    pickup.classList.toggle('hidden', G.videosmarts);
+    if(G.videosmarts){ pickup.disabled = true; pickup.classList.remove('live'); }
+  }
+}
 
 function updateHud(){
   setText('score', G.score);

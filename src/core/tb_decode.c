@@ -1,4 +1,4 @@
-/* tb_decode.c - faithful C11 port of the JS DECODER_WORKER. */
+/* tb_decode.c - C11 decoders for Terebikko, See 'N Say and Videosmarts tones. */
 #include "tb_decode.h"
 
 #include <math.h>
@@ -286,6 +286,159 @@ static void parse_at_threshold(const float *env, size_t bins, double sr, double 
     free(runs);
 }
 
+/* ---------------- Videosmarts answer-word parser ----------------
+ * Videosmarts uses a different short-burst code from the Terebikko packets above.
+ * The answer word is four 10/20 ms bursts: 1 start, 2 data bits, 1 stop.  Each word
+ * is sent four times. Some captures append a 10 ms zero burst after the stop bit;
+ * the A/Apple sample also has an extended 30 ms terminal mark.
+ * Observed copies use 8 kHz and 9 kHz carriers, so the caller runs this parser on both.
+ */
+typedef struct {
+    long start;
+    int answer;
+    int next_run;
+} videosmarts_frame;
+
+static int videosmarts_answer_from_data(int data) {
+    /* Videosmarts keys are numbered in screen order: yellow, blue, green, red. */
+    static const int answer_by_data[4] = {2, 3, 4, 1};
+    return answer_by_data[data & 3];
+}
+
+static int videosmarts_mark_bit(run_t r, char *bit) {
+    int len = (int)(r.e - r.s);
+    if (len >= 7 && len <= 13) { *bit = '0'; return 1; }
+    if (len >= 16 && len <= 24) { *bit = '1'; return 1; }
+    return 0;
+}
+
+static int videosmarts_frame_at(const run_t *runs, size_t rcount, size_t start,
+                                videosmarts_frame *out) {
+    if (start >= rcount || !runs[start].v || start + 7 >= rcount) return 0;
+    char bits[5];
+    int extended_stop = 0;
+    size_t mark = start;
+    for (int b = 0; b < 4; b++) {
+        if (mark >= rcount || !runs[mark].v) return 0;
+        int mark_len = (int)(runs[mark].e - runs[mark].s);
+        if (b == 3 && mark_len >= 25 && mark_len <= 36) {
+            /* The A/Apple sample extends its final 20 ms mark to about 30 ms. */
+            bits[b] = '1';
+            extended_stop = 1;
+        } else if (!videosmarts_mark_bit(runs[mark], &bits[b])) {
+            return 0;
+        }
+        if (b < 3) {
+            if (mark + 2 >= rcount || runs[mark + 1].v) return 0;
+            int gap = (int)(runs[mark + 1].e - runs[mark + 1].s);
+            if (gap < 5 || gap > 17) return 0;
+            mark += 2;
+        }
+    }
+
+    /* The four-bit word has start/stop ones. A fifth, short zero burst occurs in
+       some 9 kHz copies; its longer preceding gap distinguishes it from a data bit. */
+    if (bits[0] != '1' || bits[3] != '1' || mark + 1 >= rcount || runs[mark + 1].v) return 0;
+    int end_gap = (int)(runs[mark + 1].e - runs[mark + 1].s);
+    int next_run;
+    if (end_gap >= 12 && end_gap <= 30 && mark + 3 < rcount && runs[mark + 2].v) {
+        char tail;
+        int tail_gap = (int)(runs[mark + 3].e - runs[mark + 3].s);
+        if (!videosmarts_mark_bit(runs[mark + 2], &tail) || tail != '0' || runs[mark + 3].v || tail_gap < 40)
+            return 0;
+        next_run = (int)mark + 4;
+    } else if (end_gap >= 40) {
+        next_run = (int)mark + 2;
+    } else {
+        return 0;
+    }
+
+    int data = ((bits[1] == '1') << 1) | (bits[2] == '1');
+    out->start = runs[start].s;
+    out->answer = extended_stop && data == 0 ? 1 : videosmarts_answer_from_data(data);
+    out->next_run = next_run;
+    return 1;
+}
+
+static void parse_videosmarts_at_threshold(const float *env, size_t bins, double threshold,
+                                           tb_packet_list *out) {
+    size_t rcap = 1024, rcount = 0;
+    run_t *runs = (run_t *)malloc(rcap * sizeof(run_t));
+    if (!runs) return;
+    int value = bins ? (env[0] > threshold) : 0;
+    long start = 0;
+    for (size_t i = 1; i < bins; i++) {
+        int v = env[i] > threshold;
+        if (v != value) {
+            if (rcount == rcap) {
+                rcap *= 2;
+                run_t *nr = (run_t *)realloc(runs, rcap * sizeof(run_t));
+                if (!nr) { free(runs); return; }
+                runs = nr;
+            }
+            runs[rcount++] = (run_t){value, start, (long)i};
+            value = v; start = (long)i;
+        }
+    }
+    if (rcount == rcap) {
+        rcap++;
+        run_t *nr = (run_t *)realloc(runs, rcap * sizeof(run_t));
+        if (!nr) { free(runs); return; }
+        runs = nr;
+    }
+    runs[rcount++] = (run_t){value, start, (long)bins};
+
+    for (size_t i = 0; i < rcount; ) {
+        videosmarts_frame frames[4];
+        int nframes = 0;
+        size_t at = i;
+        while (nframes < 4) {
+            videosmarts_frame f;
+            if (!videosmarts_frame_at(runs, rcount, at, &f)) break;
+            if (nframes > 0) {
+                long delta = f.start - frames[nframes - 1].start;
+                if (delta < 120 || delta > 240) break;
+            }
+            frames[nframes++] = f;
+            if (f.next_run < 0 || (size_t)f.next_run >= rcount) break;
+            at = (size_t)f.next_run;
+        }
+
+        if (nframes >= 3) {
+            int votes[5] = {0,0,0,0,0};
+            for (int k = 0; k < nframes; k++) votes[frames[k].answer]++;
+            int answer = 0;
+            for (int a = 1; a <= 4; a++) if (votes[a] > votes[answer]) answer = a;
+            if (answer >= 1 && votes[answer] >= 3) {
+                tb_packet p;
+                int data = (answer + 2) & 3;
+                int code = 8 | (data << 1) | 1;
+                memset(&p, 0, sizeof p);
+                p.time = (double)frames[0].start / 1000.0;
+                p.bits[0] = '1';
+                p.bits[1] = (data & 2) ? '1' : '0';
+                p.bits[2] = (data & 1) ? '1' : '0';
+                p.bits[3] = '1'; p.bits[4] = '\0'; p.nbits = 4;
+                p.bytes[0] = (unsigned char)code; p.nbytes = 1;
+                p.answer = answer;
+                p.answer_confidence = (double)votes[answer] / nframes;
+                p.answer_candidate = false;
+                p.kind = TB_KIND_ANSWER;
+                p.quality = 0.95;
+                p.mode = TB_MODE_VIDEOSMARTS;
+                packet_list_push(out, &p);
+                i = (size_t)frames[nframes - 1].next_run;
+                if (i >= rcount) break;
+            } else {
+                i++;
+            }
+        } else {
+            i++;
+        }
+    }
+    free(runs);
+}
+
 /* ---------------- voting / dedupe ---------------- */
 typedef struct { double t0, t1; size_t *idx; size_t n, cap; int answer; double confidence; } pulse_grp;
 
@@ -339,13 +492,38 @@ double tb_decode_channel(const float *samples, size_t n, double sr, double carri
     if (!(high > base)) { free(env); return carrier; }
 
     static const double ratios[] = {0.22, 0.28, 0.34, 0.40, 0.46, 0.52, 0.60};
+    static const double videosmarts_ratios[] = {0.28, 0.40, 0.52};
     tb_packet_list all; tb_packet_list_init(&all);
     for (int i = 0; i < 7; i++) {
-        parse_at_threshold(env, bins, sr, base + ratios[i] * (high - base), &all);
+        double threshold = base + ratios[i] * (high - base);
+        parse_at_threshold(env, bins, sr, threshold, &all);
         char buf[64]; snprintf(buf, sizeof buf, "Parsing pulse packets... threshold %d/7", i + 1);
         report(pr, user, 75 + (i + 1) / 7.0 * 22, buf);
     }
+    if (carrier >= 7500 && carrier <= 9500 && high > base) {
+        for (size_t ri = 0; ri < sizeof(videosmarts_ratios) / sizeof(videosmarts_ratios[0]); ri++)
+            parse_videosmarts_at_threshold(env, bins, base + videosmarts_ratios[ri] * (high - base), &all);
+    }
     free(env);
+
+    /* Videosmarts tapes in the supplied samples switch between 8 and 9 kHz. Keep
+       the legacy carrier choice for the classic decoder, but inspect the other band
+       here so a mixed-frequency tape does not lose answer words. */
+    static const double videosmarts_carriers[] = {8000.0, 9000.0};
+    for (size_t fi = 0; fi < sizeof(videosmarts_carriers) / sizeof(videosmarts_carriers[0]); fi++) {
+        double f = videosmarts_carriers[fi];
+        if (fabs(f - carrier) < 1.0) continue; /* current envelope was already parsed */
+        size_t vbins = 0;
+        float *venv = make_envelope(samples, n, sr, f, &vbins, NULL, NULL);
+        if (!venv || !vbins) { free(venv); continue; }
+        double vbase = percentile(venv, vbins, 50), vhigh = percentile(venv, vbins, 99.9);
+        if (vhigh > vbase) {
+            for (size_t ri = 0; ri < sizeof(videosmarts_ratios) / sizeof(videosmarts_ratios[0]); ri++)
+                parse_videosmarts_at_threshold(venv, vbins,
+                    vbase + videosmarts_ratios[ri] * (vhigh - vbase), &all);
+        }
+        free(venv);
+    }
 
     qsort(all.data, all.count, sizeof(tb_packet), cmp_packet_time);
 
@@ -374,6 +552,19 @@ double tb_decode_channel(const float *samples, size_t n, double sr, double carri
     /* dedupe: collapse packets within 0.035s, keeping the higher score */
     for (size_t i = 0; i < all.count; i++) {
         const tb_packet *p = &all.data[i];
+        if (p->mode == TB_MODE_VIDEOSMARTS && p->answer >= 1 && p->answer <= 4) {
+            bool duplicate = false;
+            for (size_t j = out->count; j > 0; j--) {
+                tb_packet *prev = &out->data[j - 1];
+                if (p->time - prev->time >= 0.8) break;
+                if (prev->mode == TB_MODE_VIDEOSMARTS && prev->answer == p->answer) {
+                    if (packet_score(p) > packet_score(prev)) *prev = *p;
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (duplicate) continue;
+        }
         if (out->count > 0) {
             tb_packet *last = &out->data[out->count - 1];
             if (fabs(p->time - last->time) < 0.035) {

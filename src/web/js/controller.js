@@ -18,7 +18,7 @@ const KEY_STORE = 'terebikko.keys', GAMEPAD_STORE = 'terebikko.gamepad', OPT_STO
 const STATE_DB_NAME = 'TerebikkoEmuStateDatabase', STATE_DB_VERSION = 1, STATE_DB_STORE = 'saveStates';
 
 const G = {
-  audioBuf:null, audioDecoded:false, audioDecoding:false, audioDecodeError:null, decodeProgressTimer:null, events:[], play:[], analysis:null,
+  audioBuf:null, audioDecoded:false, audioDecoding:false, audioDecodeError:null, decodeProgressTimer:null, events:[], play:[], analysis:null, videosmarts:false,
   subtitleCues:[], subtitleLabel:'', subtitleMode:'none', subtitleTrack:null, currentFileKey:null, currentFileMeta:null,
   curIdx:0, active:null, running:false, internalSeek:false, pauseLockUntil:0,
   score:0, streak:0, best:0, lives:3, correct:0, wrong:0, ended:false,
@@ -293,6 +293,7 @@ function beginAudioDecodeLoad(){
   G.audioDecoding = true;
   G.audioDecodeError = null;
   G.analysis = null;
+  setVideosmartsMode(false);
   clearSubtitles();
   G.events = [];
   G.play = [];
@@ -315,6 +316,7 @@ function failAudioDecodeLoad(err){
   G.audioDecoding = false;
   G.audioDecodeError = msg;
   G.analysis = null;
+  setVideosmartsMode(false);
   G.events = [];
   G.play = [];
   G.mania.musicClip = null;
@@ -865,7 +867,7 @@ async function analyze(file){
       startDecodeProgressPulse(22, 55, 'Decoding audio... Play is locked until decoding completes.');
       audioBuf = await ctx.decodeAudioData(buf.slice(0));
       stopDecodeProgressPulse();
-      setProgress(55, 'Audio decoded. Scanning channels for the 8 kHz signal...');
+      setProgress(55, 'Audio decoded. Scanning channels for control tones...');
     }catch(err){
       stopDecodeProgressPulse();
       throw new Error('No decodable audio track found. Load a video/audio file with an audio track supported by this browser.');
@@ -886,9 +888,10 @@ async function analyze(file){
 }
 async function reanalyze(){
   if(!G.audioBuf) return;
-  setProgress(58, 'Scanning channels for the 8 kHz signal...');
+  setProgress(58, 'Scanning channels for control tones...');
   const res = await analyzeChannels(G.audioBuf, 'auto', (v,t)=>setProgress(58 + v*0.42, t));
   G.analysis = res;
+  setVideosmartsMode(res.chosen.packets.some(p=>p.mode==='videosmarts'));
   G.events = buildEvents(res.chosen.packets, {carrier:res.chosen.carrier});
   G.play = playEvents(G.events);
   G.mania.musicClip = null;
@@ -1471,6 +1474,20 @@ function requestStartFromThumbnail(){
 }
 function buttonsEnabled(on){ document.querySelectorAll('.phoneBtn').forEach(b=>b.disabled = !on); }
 function pickupEnabled(on){ const b = $('pickupBtn'); if(b) b.disabled = !on; b && b.classList.toggle('live', on); }
+function setVideosmartsMode(on){
+  G.videosmarts = !!on;
+  if(document.body) document.body.classList.toggle('videosmarts', G.videosmarts);
+  const names = ['Yellow','Blue','Green','Red'];
+  document.querySelectorAll('.phoneBtn').forEach(b=>{
+    const answer = Number(b.dataset.answer);
+    b.textContent = G.videosmarts ? names[answer-1] : String(answer);
+  });
+  const pickup = $('pickupBtn');
+  if(pickup){
+    pickup.classList.toggle('hidden', G.videosmarts);
+    if(G.videosmarts){ pickup.disabled = true; pickup.classList.remove('live'); }
+  }
+}
 
 function updateHud(){
   setText('score', G.score);

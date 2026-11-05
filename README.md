@@ -3,9 +3,9 @@
 ![User interface to TerebikkoEmu, playing Sailor S, on Firefox](https://raw.githubusercontent.com/gameblabla/TerebikkoEmu/refs/heads/main/screenshot.png)
 
 
-TerebikkoEmu is a player/emulator for the Bandai Terebikko and its american counterpart, the Mattel See 'N Say Videophone for Windows/Linux, and Web browsers.
+TerebikkoEmu is a player/emulator for the Bandai Terebikko, Mattel See 'N Say Videophone and Connor VideoSmarts for Windows/Linux and Web browsers.
 
-It is capable of interpreting the 7-8khz tones encoded on the audio channels, and understanding the correct answer to the question asked.
+It decodes the 7-9 kHz control tones encoded on the audio channels and recovers the correct answer to each question.
 
 At startup, when loading a new video file, it builds up a list of all of the tones in question in the video,
 and constructs a playthrough accordingly.
@@ -31,7 +31,7 @@ and its my opinion that these games should get redumped anyway.
 
 - You simply need a high quality video / audio source
 
-**Make sure it has the 7-8 khz audio tones fully intact, DO NOT FILTER THEM !**
+**Keep the 7-9 kHz audio tones intact; do not filter them.**
 
 Then you can drag and drop it into the window of the emulator meant for it.
 
@@ -39,7 +39,7 @@ If you have the equipment and your own VHS tapes, i strongly suggest you look in
 This will allow you to have your own, raw dump, that you can then pre-process.
 You can also use your own AI upscaled videos, if that's what you prefer instead.
 
-To my knowledge, there are no vhs-decode files for any of the Terebikko or See 'N Say VHS tapes.
+To my knowledge, there are no vhs-decode files for any of the Terebikko, See 'N Say or VideoSmarts VHS tapes.
 
 - Optionally, subtitles, as these japanese titles will benefit from it.
 

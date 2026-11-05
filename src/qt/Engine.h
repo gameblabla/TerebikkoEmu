@@ -34,6 +34,7 @@ public:
 
     void loadFile(const QString &path);     // async analyse + load
     bool isReady() const { return ready_; }
+    bool isVideosmarts() const { return videosmarts_; }
 
     // playback / game control surfaced to the GUI
     void startFromThumbnail();               // opens difficulty then starts
@@ -137,6 +138,7 @@ private:
     qint64  fileSize_ = 0;
     double  duration_ = 0, carrier_ = 8000;
     bool    ready_ = false;
+    bool    videosmarts_ = false;
     std::atomic<bool> loading_{false};
     std::thread analyzeThread_;     // joined before reuse / on destruction
     bool    maniaMusic_ = false;

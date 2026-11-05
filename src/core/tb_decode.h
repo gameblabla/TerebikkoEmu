@@ -1,10 +1,10 @@
 /*
- * tb_decode.h - Terebikko / See 'N Say control-tone decoder (pure C11).
+ * tb_decode.h - Terebikko / See 'N Say / VideoSmarts tone decoders (pure C11).
  *
- * This is a faithful port of the DECODER_WORKER / analyzeChannels logic from the
- * HTML/JS emulator. It takes mono float PCM for one channel and recovers the hidden
- * 8 kHz (or ~7 kHz) pulse packets: answer pulses (button 1-4) and control pulses
- * (pick-up ring / talk / intro).
+ * The classic packet path follows the DECODER_WORKER / analyzeChannels logic from the
+ * HTML/JS emulator; a separate parser handles Videosmarts answer words. The functions
+ * take mono float PCM for one channel and recover hidden 7-9 kHz answer and control
+ * pulses (pick-up ring / talk / intro).
  *
  * No Qt, no C++, no I/O. Frontends talk to this through tb_core.h opaque handles.
  */
@@ -30,7 +30,8 @@ typedef enum {
 /* Which parser produced the packet (JS `mode`). */
 typedef enum {
     TB_MODE_GAP_RUN = 0,
-    TB_MODE_START_PERIOD
+    TB_MODE_START_PERIOD,
+    TB_MODE_VIDEOSMARTS
 } tb_parse_mode;
 
 #define TB_MAX_BITS  48

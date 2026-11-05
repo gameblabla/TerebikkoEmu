@@ -62,6 +62,7 @@ void Engine::freeMedia() {
     if (sfx_) tb_sfx_set_music(sfx_, nullptr, 0, 0);
     free(musicPcm_); musicPcm_ = nullptr; musicFrames_ = 0; musicSr_ = 0;
     gameIdx_ = -1; gameName_.clear();
+    videosmarts_ = false;
     ready_ = false;
 }
 
@@ -134,16 +135,24 @@ void Engine::loadFile(const QString &path) {
             else if (channelPref_ == "right" && au.nch > 1) order[no++] = 1;
             else for (int c = 0; c < au.nch && c < 8; c++) order[no++] = c;
 
-            int bestAns = -1; double bestCar = 8000; tb_packet_list best; tb_packet_list_init(&best);
+            int bestAns = -1; double bestCar = 8000; bool bestVideoSmarts = false;
+            tb_packet_list best; tb_packet_list_init(&best);
             for (int i = 0; i < no; i++) {
                 int c = order[i];
                 tb_packet_list pk; tb_packet_list_init(&pk);
                 double car = tb_decode_channel(au.chan[c], au.nsamples, au.sample_rate, 0, &pk, nullptr, nullptr);
-                int ans = 0; for (size_t k = 0; k < pk.count; k++) if (pk.data[k].answer >= 1 && pk.data[k].answer <= 4) ans++;
-                if (ans > bestAns) { bestAns = ans; bestCar = car; tb_packet_list_free(&best); best = pk; }
+                int ans = 0; bool videoSmarts = false;
+                for (size_t k = 0; k < pk.count; k++) {
+                    if (pk.data[k].answer >= 1 && pk.data[k].answer <= 4) ans++;
+                    if (pk.data[k].mode == TB_MODE_VIDEOSMARTS) videoSmarts = true;
+                }
+                if (ans > bestAns || (ans == bestAns && videoSmarts && !bestVideoSmarts)) {
+                    bestAns = ans; bestCar = car; bestVideoSmarts = videoSmarts;
+                    tb_packet_list_free(&best); best = pk;
+                }
                 else tb_packet_list_free(&pk);
             }
-            carrier_ = bestCar; duration_ = dur;
+            carrier_ = bestCar; duration_ = dur; videosmarts_ = bestVideoSmarts;
             tb_event_list_init(&events_);
             tb_build_events(&best, bestCar, &events_);
             tb_packet_list_free(&best);

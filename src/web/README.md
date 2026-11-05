@@ -5,7 +5,7 @@ sources here, not the generated files in `web/`.
 
 | Path | Purpose |
 | --- | --- |
-| `js/decoder-worker.js` | Off-thread 8 kHz / pulse decoder. Inlined as a `text/plain` script so the page stays standalone. |
+| `js/decoder-worker.js` | Off-thread 7-9 kHz pulse decoder for Terebikko, See 'N Say and Videosmarts. Inlined as a `text/plain` script so the page stays standalone. |
 | `js/engine.js` | Shared audio analysis, event timeline and decoder-worker plumbing. |
 | `js/controller.js` | DOM controller, game state, input, save states and minigame. |
 | `styles/app.css` | Page styles. |

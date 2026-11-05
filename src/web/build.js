@@ -140,7 +140,7 @@ function renderBody(debug, templates) {
   const heading = debug ? 'TerebikkoEmu — Debug' : 'TerebikkoEmu';
   const subtitle = debug
     ? 'Developer build: same generic decoder and game engine as the release player, plus the decoded event timeline, per-channel report, and direct event jumping.'
-    : "Drop a Terebikko or See 'N Say video and play along with the four-button phone. Hard mode turns it into a Dragon's-Lair quick-time challenge.";
+    : "Drop a Terebikko, See 'N Say or VideoSmarts video and play along with the four answer buttons. Hard mode turns it into a Dragon's-Lair quick-time challenge.";
   const debugBar = debug
     ? '<button class="btn" id="nextBtn" title="Jump to next decoded event">Next event</button>'
     : '';

@@ -1,7 +1,7 @@
 /*
  * MainWindow.h - top-level window: menu bar (Load Video / Save States / Fullscreen
- * / About), the gallery<->player stack, the 1/2/3/4 + Pick-up phone buttons, the
- * HUD and the transport bar. Keyboard input is mapped through the Engine's
+ * / About), the gallery<->player stack, the four answer buttons and optional
+ * Pick-up button, the HUD and the transport bar. Keyboard input is mapped through the Engine's
  * remappable bindings.
  */
 #pragma once
